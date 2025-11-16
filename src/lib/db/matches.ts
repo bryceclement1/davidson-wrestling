@@ -8,6 +8,22 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockMatches } from "@/lib/analytics/mockData";
 import type { Database } from "@/types/database";
 
+function deriveFirstTakedownFromDbEvents(
+  events: Database["public"]["Tables"]["match_events"]["Row"][] | null | undefined,
+  fallback?: Database["public"]["Tables"]["matches"]["Row"]["first_takedown_scorer"],
+) {
+  const takedown = events
+    ?.filter((event) => event.action_type === "takedown")
+    .sort((a, b) => (a.period_order ?? 0) - (b.period_order ?? 0))[0];
+  if (takedown && takedown.scorer !== "none") {
+    return takedown.scorer;
+  }
+  if (fallback && fallback !== "none") {
+    return fallback;
+  }
+  return undefined;
+}
+
 export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -26,25 +42,10 @@ export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
     return mockMatches.slice(0, limit);
   }
 
-  return data.map((match) => ({
-    id: match.id,
-    wrestlerId: match.wrestler_id,
-    eventId: match.event_id ?? undefined,
-    opponentName: match.opponent_name,
-    opponentSchool: match.opponent_school ?? undefined,
-    weightClass: match.weight_class ?? undefined,
-    matchType: match.match_type,
-    eventName: match.event_name ?? undefined,
-    outcomeType: match.outcome_type ?? undefined,
-    date: match.date,
-    result: match.result,
-    ourScore: match.our_score,
-    opponentScore: match.opponent_score,
-    firstTakedownScorer: match.first_takedown_scorer,
-    ourRidingTimeSeconds: match.our_riding_time_seconds,
-    opponentRidingTimeSeconds: match.opponent_riding_time_seconds,
-    events:
-      match.match_events?.map((evt) => ({
+  return data.map((match) => {
+    const eventRows = match.match_events ?? [];
+    const events =
+      eventRows.map((evt) => ({
         id: String(evt.id),
         matchId: evt.match_id,
         actionType: evt.action_type,
@@ -56,8 +57,31 @@ export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
         takedownType: evt.takedown_type ?? undefined,
         points: evt.points ?? undefined,
         createdAt: evt.created_at,
-      })) ?? [],
-  }));
+      })) ?? [];
+
+    return {
+      id: match.id,
+      wrestlerId: match.wrestler_id,
+      eventId: match.event_id ?? undefined,
+      opponentName: match.opponent_name,
+      opponentSchool: match.opponent_school ?? undefined,
+      weightClass: match.weight_class ?? undefined,
+      matchType: match.match_type,
+      eventName: match.event_name ?? undefined,
+      outcomeType: match.outcome_type ?? undefined,
+      date: match.date,
+      result: match.result,
+      ourScore: match.our_score,
+      opponentScore: match.opponent_score,
+      firstTakedownScorer: deriveFirstTakedownFromDbEvents(
+        eventRows,
+        match.first_takedown_scorer,
+      ),
+      ourRidingTimeSeconds: match.our_riding_time_seconds,
+      opponentRidingTimeSeconds: match.opponent_riding_time_seconds,
+      events,
+    };
+  });
 }
 
 export async function persistMatchLog(payload: MatchLogPayload) {
@@ -119,6 +143,59 @@ export async function persistMatchLog(payload: MatchLogPayload) {
   }
 
   return { success: true };
+}
+
+export async function getMatchById(id: number): Promise<MatchWithEvents | null> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockMatches.find((match) => match.id === id) ?? null;
+  }
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select("*, match_events(*), wrestlers(name)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.error("Match lookup failed", error);
+    return null;
+  }
+
+  return {
+    id: data.id,
+    wrestlerId: data.wrestler_id,
+    wrestlerName: data.wrestlers?.name ?? undefined,
+    opponentName: data.opponent_name,
+    opponentSchool: data.opponent_school ?? undefined,
+    weightClass: data.weight_class ?? undefined,
+    seasonId: data.season_id ?? undefined,
+    matchType: data.match_type,
+    eventName: data.event_name ?? undefined,
+    outcomeType: data.outcome_type ?? undefined,
+    date: data.date,
+    result: data.result,
+    ourScore: data.our_score ?? 0,
+    opponentScore: data.opponent_score ?? 0,
+    firstTakedownScorer: data.first_takedown_scorer ?? undefined,
+    ourRidingTimeSeconds: data.our_riding_time_seconds ?? undefined,
+    opponentRidingTimeSeconds: data.opponent_riding_time_seconds ?? undefined,
+    events:
+      data.match_events?.map((evt) => ({
+        id: String(evt.id),
+        matchId: evt.match_id,
+        actionType: evt.action_type,
+        periodOrder: evt.period_order,
+        periodType: evt.period_type,
+        periodNumber: evt.period_number,
+        scorer: evt.scorer,
+        attacker: evt.attacker ?? undefined,
+        takedownType: evt.takedown_type ?? undefined,
+        points: evt.points ?? undefined,
+        createdAt: evt.created_at ?? undefined,
+      })) ?? [],
+  };
 }
 
 const dualOutcomePoints: Record<MatchOutcomeType, number> = {

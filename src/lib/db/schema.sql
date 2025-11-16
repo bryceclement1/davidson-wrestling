@@ -72,7 +72,7 @@ create table if not exists public.match_events (
   takedown_type text check (
     takedown_type in ('single', 'double', 'high_c', 'ankle_pick', 'throw', 'trip', 'other')
   ),
-  points smallint check (points in (1, 2, 3, 4)),
+  points smallint check (points in (0, 1, 2, 3, 4)),
   created_at timestamptz default timezone('utc', now())
 );
 

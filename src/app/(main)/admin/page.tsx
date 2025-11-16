@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth/roles";
 import { getRecentMatches } from "@/lib/db/matches";
@@ -70,9 +71,11 @@ export default async function AdminPage() {
                     {match.result} {match.ourScore}-{match.opponentScore}
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <Button variant="outline" size="sm">
-                      Edit Match
-                    </Button>
+                    <Link href={`/admin/matches/${match.id}`}>
+                      <Button variant="outline" size="sm">
+                        Edit Match
+                      </Button>
+                    </Link>
                   </td>
                 </tr>
               ))}

@@ -1,19 +1,19 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { TeamPeriodStat, WrestlerPeriodBreakdown } from "@/types/analytics";
-import { mockTeamDashboard, mockWrestlerStats } from "./mockData";
+import { mockTeamPeriodStats, mockWrestlerStats } from "./mockData";
 
 export async function getTeamPeriodBreakdown(): Promise<TeamPeriodStat[]> {
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return mockTeamDashboard.periodStats;
+    return mockTeamPeriodStats;
   }
 
   const { data, error } = await supabase.rpc("get_team_period_stats");
 
   if (error || !data) {
     console.error("Team period stats RPC failed", error);
-    return mockTeamDashboard.periodStats;
+    return mockTeamPeriodStats;
   }
 
   return data as TeamPeriodStat[];

@@ -32,6 +32,6 @@ export interface MatchEvent {
   scorer: MatchSide;
   attacker?: Exclude<MatchSide, "none">;
   takedownType?: TakedownType;
-  points?: 1 | 2 | 3 | 4;
+  points?: 0 | 1 | 2 | 3 | 4;
   createdAt?: string;
 }

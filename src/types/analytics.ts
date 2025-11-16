@@ -32,20 +32,64 @@ export interface LeaderboardEntry {
 
 export type TeamPeriodStat = WrestlerPeriodBreakdown;
 
+export interface PeriodPointsAverages {
+  label: string;
+  order: number;
+  us: number;
+  opponent: number;
+}
+
+export interface StallPeriodBreakdown {
+  label: string;
+  order: number;
+  us: number;
+  opponent: number;
+}
+
 export interface TeamDashboardData {
   seasonLabel: string;
-  record: string;
   matchesLogged: number;
-  totalPointsFor: number;
-  totalPointsAgainst: number;
-  firstTakedownWinPct: number;
-  ridingTimeAdvantagePct: number;
-  periodStats: TeamPeriodStat[];
+  overall: {
+    record: string;
+    pointsFor: number;
+    pointsAgainst: number;
+    escapesFor: number;
+    escapesAgainst: number;
+    nearfallPointsFor: number;
+    nearfallPointsAgainst: number;
+  };
+  outcomePredictors: {
+    firstTakedownWinPct: number;
+    leadingAfterP1WinPct: number;
+    trailingAfterP1WinPct: number;
+    tiedHeadingIntoP3WinPct: number;
+    averagePointsByPeriod: PeriodPointsAverages[];
+  };
+  takedownEfficiency: {
+    ourConversionPct: number;
+    opponentConversionPct: number;
+    ourAttempts: number;
+    opponentAttempts: number;
+  };
+  topBottom: {
+    zeroEscapePct: number;
+    rideOuts: { us: number; opponent: number };
+    ridingTimePointPct: { us: number; opponent: number };
+    reversals: { us: number; opponent: number };
+  };
+  stall: {
+    avgUs: number;
+    avgOpponent: number;
+    byPeriod: StallPeriodBreakdown[];
+  };
+  clutch: {
+    overtimeWinPct: number;
+    onePointWinPct: number;
+    twoPointWinPct: number;
+  };
   leaderboards: {
     wins: LeaderboardEntry[];
     takedowns: LeaderboardEntry[];
-    thirdPeriod: LeaderboardEntry[];
-    firstTakedown: LeaderboardEntry[];
   };
   recentMatches: MatchWithEvents[];
 }
