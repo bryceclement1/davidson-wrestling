@@ -10,6 +10,7 @@ export interface MatchMeta {
   opponentSchool?: string;
   weightClass?: string;
   seasonId?: number;
+  eventId?: number | null;
   matchType: MatchType;
   eventName?: string;
   date: string;

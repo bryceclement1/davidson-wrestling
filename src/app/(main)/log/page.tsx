@@ -1,8 +1,10 @@
 import { getRoster } from "@/lib/db/wrestlers";
 import { MatchLogger } from "@/components/logging/MatchLogger";
+import { listEvents } from "@/lib/db/events";
 
 export default async function MatchLogPage() {
   const roster = await getRoster();
+  const events = await listEvents();
 
   return (
     <div className="space-y-6">
@@ -18,7 +20,7 @@ export default async function MatchLogPage() {
           before saving ensure clean data from the mat.
         </p>
       </header>
-      <MatchLogger roster={roster} />
+      <MatchLogger roster={roster} events={events} />
     </div>
   );
 }

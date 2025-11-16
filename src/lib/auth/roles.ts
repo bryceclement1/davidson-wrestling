@@ -23,12 +23,22 @@ export async function getAuthenticatedUser(): Promise<AppUser | null> {
     return null;
   }
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role, name, wrestler_id")
+    .eq("id", user.id)
+    .maybeSingle();
+
   return {
     id: user.id,
     email: user.email ?? "",
-    name: user.user_metadata?.full_name ?? "Davidson Wrestler",
-    role: (user.user_metadata?.role ?? "standard") as UserRole,
-    wrestlerId: user.user_metadata?.wrestler_id ?? null,
+    name:
+      profile?.name ??
+      user.user_metadata?.full_name ??
+      user.user_metadata?.name ??
+      "Davidson Wrestler",
+    role: (profile?.role ?? user.user_metadata?.role ?? "standard") as UserRole,
+    wrestlerId: profile?.wrestler_id ?? user.user_metadata?.wrestler_id ?? null,
   };
 }
 

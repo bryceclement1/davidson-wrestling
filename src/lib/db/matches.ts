@@ -23,6 +23,7 @@ export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
   return data.map((match) => ({
     id: match.id,
     wrestlerId: match.wrestler_id,
+    eventId: match.event_id ?? undefined,
     opponentName: match.opponent_name,
     opponentSchool: match.opponent_school ?? undefined,
     weightClass: match.weight_class ?? undefined,
@@ -65,10 +66,11 @@ export async function persistMatchLog(payload: MatchLogPayload) {
     .insert({
       wrestler_id: payload.match.wrestlerId,
       opponent_name: payload.match.opponentName,
-      opponent_school: payload.match.opponentSchool,
+      opponent_school: payload.match.opponentSchool || null,
       weight_class: payload.match.weightClass,
       match_type: payload.match.matchType,
-      event_name: payload.match.eventName,
+      event_id: payload.match.eventId ?? null,
+      event_name: payload.match.eventName?.trim() || null,
       date: payload.match.date,
       result: payload.match.result,
       our_score: payload.match.ourScore,

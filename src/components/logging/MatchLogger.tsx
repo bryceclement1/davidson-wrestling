@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { Wrestler } from "@/types/wrestler";
 import type { MatchEvent, MatchSide, TakedownType } from "@/types/events";
 import type { MatchMeta } from "@/types/match";
+import type { TeamEvent } from "@/types/event";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -15,6 +16,7 @@ import { createMatchLog } from "@/app/(main)/log/actions";
 
 interface Props {
   roster: Wrestler[];
+  events: TeamEvent[];
 }
 
 const periodTemplate: PeriodOption[] = [
@@ -45,9 +47,9 @@ const takedownTypes: TakedownType[] = [
 
 const nearfallPoints: Array<2 | 3 | 4> = [2, 3, 4];
 
-export function MatchLogger({ roster }: Props) {
+export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [periodIndex, setPeriodIndex] = useState(0);
-  const [events, setEvents] = useState<MatchEvent[]>([]);
+  const [loggedEvents, setLoggedEvents] = useState<MatchEvent[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +65,7 @@ export function MatchLogger({ roster }: Props) {
     opponentSchool: "",
     weightClass: roster[0]?.primaryWeightClass ?? "",
     matchType: "dual",
+    eventId: null,
     eventName: "",
     date: new Date().toISOString().slice(0, 10),
     result: "W",
@@ -96,7 +99,7 @@ export function MatchLogger({ roster }: Props) {
       points: event.points as MatchEvent["points"],
     };
 
-    setEvents((prev) => [...prev, payload]);
+    setLoggedEvents((prev) => [...prev, payload]);
     setPrompt(null);
   };
 
@@ -136,7 +139,36 @@ export function MatchLogger({ roster }: Props) {
   };
 
   const removeEvent = (id: string) => {
-    setEvents((prev) => prev.filter((event) => event.id !== id));
+    setLoggedEvents((prev) => prev.filter((event) => event.id !== id));
+  };
+
+  const handleEventSelect = (eventIdValue: string) => {
+    if (!eventIdValue) {
+      setMatchMeta((prev) => ({
+        ...prev,
+        eventId: null,
+        eventName: "",
+      }));
+      return;
+    }
+
+    const selected = availableEvents.find(
+      (event) => String(event.id) === eventIdValue,
+    );
+
+    if (selected) {
+      setMatchMeta((prev) => ({
+        ...prev,
+        eventId: selected.id,
+        eventName: selected.name,
+        matchType: selected.type,
+        date: selected.date,
+        opponentSchool:
+          selected.type === "dual" && selected.opponentSchool
+            ? selected.opponentSchool
+            : prev.opponentSchool,
+      }));
+    }
   };
 
   const handleSave = () => {
@@ -145,14 +177,16 @@ export function MatchLogger({ roster }: Props) {
     setError(null);
     startTransition(async () => {
       try {
-        await createMatchLog({ match: matchMeta, events });
+        await createMatchLog({ match: matchMeta, events: loggedEvents });
         setStatusMessage("Match saved to Supabase.");
-        setEvents([]);
+        setLoggedEvents([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to save match.");
       }
     });
   };
+
+  const dismissPrompt = () => setPrompt(null);
 
   const takedownPrompt = prompt?.mode === "takedown";
   const nearfallPrompt = prompt?.mode === "nearfall";
@@ -199,6 +233,23 @@ export function MatchLogger({ roster }: Props) {
               }
             />
           </label>
+          {availableEvents.length > 0 && (
+            <label className="text-sm font-semibold text-[var(--brand-navy)]">
+              Linked Event
+              <Select
+                className="mt-1"
+                value={matchMeta.eventId ? String(matchMeta.eventId) : ""}
+                onChange={(event) => handleEventSelect(event.target.value)}
+              >
+                <option value="">None / Custom</option>
+                {availableEvents.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name} ({event.type === "dual" ? "Dual" : "Tournament"})
+                  </option>
+                ))}
+              </Select>
+            </label>
+          )}
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
             Event Date
             <Input
@@ -206,6 +257,17 @@ export function MatchLogger({ roster }: Props) {
               className="mt-1"
               value={matchMeta.date}
               onChange={(event) => handleMetaChange("date", event.target.value)}
+            />
+          </label>
+          <label className="text-sm font-semibold text-[var(--brand-navy)]">
+            Event Name
+            <Input
+              className="mt-1"
+              placeholder="Optional if linked above"
+              value={matchMeta.eventName ?? ""}
+              onChange={(event) =>
+                handleMetaChange("eventName", event.target.value)
+              }
             />
           </label>
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
@@ -302,7 +364,7 @@ export function MatchLogger({ roster }: Props) {
 
       <EventLoggerControls onEvent={handleEventClick} />
 
-      <MatchEventList events={events} onRemove={removeEvent} />
+      <MatchEventList events={loggedEvents} onRemove={removeEvent} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -319,7 +381,7 @@ export function MatchLogger({ roster }: Props) {
           <Button
             variant="outline"
             onClick={() => {
-              setEvents([]);
+              setLoggedEvents([]);
               setStatusMessage(null);
             }}
           >
@@ -328,7 +390,7 @@ export function MatchLogger({ roster }: Props) {
           <Button
             variant="primary"
             onClick={() => setIsConfirmOpen(true)}
-            disabled={!events.length}
+            disabled={!loggedEvents.length}
           >
             Save Match / Finalize
           </Button>
@@ -345,8 +407,14 @@ export function MatchLogger({ roster }: Props) {
       />
 
       {takedownPrompt && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={dismissPrompt}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
               Takedown Type
             </p>
@@ -364,13 +432,28 @@ export function MatchLogger({ roster }: Props) {
             <p className="mt-4 text-xs text-[var(--neutral-gray)]">
               Defaulting to {lastTakedownType.toUpperCase()} next time.
             </p>
+            <div className="mt-4 text-right">
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--neutral-gray)]"
+                onClick={dismissPrompt}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {nearfallPrompt && (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={dismissPrompt}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
               Nearfall Points
             </p>
@@ -384,6 +467,15 @@ export function MatchLogger({ roster }: Props) {
                   {value}
                 </button>
               ))}
+            </div>
+            <div className="mt-4 text-right">
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--neutral-gray)]"
+                onClick={dismissPrompt}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
