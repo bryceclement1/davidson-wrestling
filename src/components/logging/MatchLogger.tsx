@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { clsx } from "clsx";
 import type { Wrestler } from "@/types/wrestler";
 import type { MatchEvent, MatchSide, TakedownType } from "@/types/events";
-import type { MatchMeta } from "@/types/match";
+import type { MatchMeta, MatchOutcomeType } from "@/types/match";
 import type { TeamEvent } from "@/types/event";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -23,8 +24,9 @@ const periodTemplate: PeriodOption[] = [
   { label: "Period 1", type: "reg", number: 1, order: 1 },
   { label: "Period 2", type: "reg", number: 2, order: 2 },
   { label: "Period 3", type: "reg", number: 3, order: 3 },
-  { label: "OT 1", type: "ot", number: 1, order: 4 },
+  { label: "Sudden Victory", type: "ot", number: 1, order: 4 },
   { label: "TB 1", type: "tb", number: 1, order: 5 },
+  { label: "TB 2", type: "tb", number: 2, order: 6 },
 ];
 
 type PromptState =
@@ -46,16 +48,32 @@ const takedownTypes: TakedownType[] = [
 ];
 
 const nearfallPoints: Array<2 | 3 | 4> = [2, 3, 4];
+const outcomeOptions: Array<{ value: MatchOutcomeType; label: string }> = [
+  { value: "decision", label: "Decision" },
+  { value: "major_decision", label: "Major Decision" },
+  { value: "tech_fall", label: "Tech Fall" },
+  { value: "fall", label: "Fall" },
+  { value: "forfeit", label: "Forfeit" },
+  { value: "injury", label: "Injury" },
+];
+
+function formatOutcomeLabel(value?: MatchOutcomeType) {
+  return outcomeOptions.find((option) => option.value === value)?.label ?? "Decision";
+}
 
 export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [periodIndex, setPeriodIndex] = useState(0);
   const [loggedEvents, setLoggedEvents] = useState<MatchEvent[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isOutcomeModalOpen, setIsOutcomeModalOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const [lastTakedownType, setLastTakedownType] =
     useState<TakedownType>("single");
+  const [draftResult, setDraftResult] = useState<MatchMeta["result"]>("W");
+  const [draftOutcomeType, setDraftOutcomeType] =
+    useState<MatchOutcomeType>("decision");
   const [isPending, startTransition] = useTransition();
 
   const defaultWrestlerId = roster[0]?.id ?? 0;
@@ -67,11 +85,12 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
     matchType: "dual",
     eventId: null,
     eventName: "",
+    outcomeType: "decision",
     date: new Date().toISOString().slice(0, 10),
     result: "W",
     ourScore: 0,
     opponentScore: 0,
-    firstTakedownScorer: "us",
+    firstTakedownScorer: "none",
     ourRidingTimeSeconds: 0,
     opponentRidingTimeSeconds: 0,
   });
@@ -171,6 +190,21 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
     }
   };
 
+  const openOutcomeModal = () => {
+    setDraftResult(matchMeta.result === "L" ? "L" : "W");
+    setDraftOutcomeType(matchMeta.outcomeType ?? "decision");
+    setIsOutcomeModalOpen(true);
+  };
+
+  const handleOutcomeSave = () => {
+    setMatchMeta((prev) => ({
+      ...prev,
+      result: draftResult === "L" ? "L" : "W",
+      outcomeType: draftOutcomeType,
+    }));
+    setIsOutcomeModalOpen(false);
+  };
+
   const handleSave = () => {
     setIsConfirmOpen(false);
     setStatusMessage(null);
@@ -206,7 +240,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
             >
               {roster.map((wrestler) => (
                 <option key={wrestler.id} value={wrestler.id}>
-                  {wrestler.name} · {wrestler.primaryWeightClass ?? "—"}
+                  {wrestler.name}
                 </option>
               ))}
             </Select>
@@ -283,21 +317,6 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               <option value="tournament">Tournament</option>
             </Select>
           </label>
-          <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            Result
-            <Select
-              className="mt-1"
-              value={matchMeta.result}
-              onChange={(event) =>
-                handleMetaChange("result", event.target.value as MatchMeta["result"])
-              }
-            >
-              <option value="W">Win</option>
-              <option value="L">Loss</option>
-              <option value="D">Draw</option>
-              <option value="FF">Forfeit</option>
-            </Select>
-          </label>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
@@ -323,34 +342,24 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
             />
           </label>
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            First Takedown By
+            Weight Class
             <Select
               className="mt-1"
-              value={matchMeta.firstTakedownScorer}
-              onChange={(event) =>
-                handleMetaChange(
-                  "firstTakedownScorer",
-                  event.target.value as MatchMeta["firstTakedownScorer"],
-                )
-              }
-            >
-              <option value="us">Davidson</option>
-              <option value="opponent">Opponent</option>
-              <option value="none">None</option>
-            </Select>
-          </label>
-          <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            Weight Class
-            <Input
-              className="mt-1"
-              value={matchMeta.weightClass}
+              value={matchMeta.weightClass ?? ""}
               onChange={(event) =>
                 handleMetaChange("weightClass", event.target.value)
               }
-            />
+            >
+              <option value="">Select weight</option>
+              {["125","133","141","149","157","165","174","184","197","285"].map((weight) => (
+                <option key={weight} value={weight}>
+                  {weight}
+                </option>
+              ))}
+            </Select>
           </label>
         </div>
-      </div>
+    </div>
 
       <PeriodNavigator
         options={periodTemplate}
@@ -365,6 +374,23 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
       <EventLoggerControls onEvent={handleEventClick} />
 
       <MatchEventList events={loggedEvents} onRemove={removeEvent} />
+
+      <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+            Match Outcome
+          </p>
+          <p className="text-2xl font-semibold text-[var(--brand-navy)]">
+            {matchMeta.result === "L" ? "Loss" : "Win"}
+          </p>
+          <p className="text-sm text-[var(--neutral-gray)]">
+            {formatOutcomeLabel(matchMeta.outcomeType)}
+          </p>
+        </div>
+        <Button type="button" variant="primary" onClick={openOutcomeModal}>
+          Match Outcome
+        </Button>
+      </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -405,6 +431,75 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         onClose={() => setIsConfirmOpen(false)}
         onConfirm={handleSave}
       />
+
+      {isOutcomeModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
+          onClick={() => setIsOutcomeModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+              Match Result
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {(["W", "L"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setDraftResult(value)}
+                  className={clsx(
+                    "rounded-xl border px-4 py-3 text-lg font-semibold transition",
+                    draftResult === value
+                      ? "border-[var(--brand-navy)] bg-[var(--brand-navy)] text-white"
+                      : "border-[var(--border)] text-[var(--brand-navy)] hover:border-[var(--brand-navy)]/60",
+                  )}
+                >
+                  {value === "W" ? "Win" : "Loss"}
+                </button>
+              ))}
+            </div>
+            <p className="mt-6 text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+              Outcome Type
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              {outcomeOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setDraftOutcomeType(option.value)}
+                  className={clsx(
+                    "rounded-xl border px-4 py-3 text-sm font-semibold transition",
+                    draftOutcomeType === option.value
+                      ? "border-[var(--brand-red)] bg-[var(--brand-red)] text-white"
+                      : "border-[var(--border)] text-[var(--brand-navy)] hover:border-[var(--brand-red)]/40",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--brand-navy)]"
+                onClick={() => setIsOutcomeModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-full bg-[var(--brand-navy)] px-5 py-2 text-sm font-semibold text-white"
+                onClick={handleOutcomeSave}
+              >
+                Save Outcome
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {takedownPrompt && (
         <div

@@ -27,6 +27,13 @@ export interface Database {
           event_name: string | null;
           date: string;
           result: "W" | "L" | "D" | "FF";
+          outcome_type:
+            | "decision"
+            | "major_decision"
+            | "tech_fall"
+            | "fall"
+            | "forfeit"
+            | "injury";
           our_score: number;
           opponent_score: number;
           first_takedown_scorer: "us" | "opponent" | "none";

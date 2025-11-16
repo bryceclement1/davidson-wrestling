@@ -37,6 +37,9 @@ create table if not exists public.matches (
   event_name text,
   date date not null,
   result text check (result in ('W', 'L', 'D', 'FF')) default 'W',
+  outcome_type text not null default 'decision' check (
+    outcome_type in ('decision', 'major_decision', 'tech_fall', 'fall', 'forfeit', 'injury')
+  ),
   our_score integer default 0,
   opponent_score integer default 0,
   first_takedown_scorer text check (first_takedown_scorer in ('us', 'opponent', 'none')) default 'none',
