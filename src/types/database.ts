@@ -19,6 +19,7 @@ export interface Database {
           id: number;
           wrestler_id: number;
           season_id: number | null;
+          event_id: number | null;
           opponent_name: string;
           opponent_school: string | null;
           weight_class: string | null;
@@ -35,6 +36,18 @@ export interface Database {
         };
         Insert: Partial<Database["public"]["Tables"]["matches"]["Row"]>;
         Update: Partial<Database["public"]["Tables"]["matches"]["Row"]>;
+      };
+      events: {
+        Row: {
+          id: number;
+          name: string;
+          event_type: "dual" | "tournament";
+          date: string;
+          opponent_school: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["events"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["events"]["Row"]>;
       };
       match_events: {
         Row: {

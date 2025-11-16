@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import {
   Activity,
   BarChart3,
+  CalendarDays,
   LogIn,
   Menu,
   PanelLeftClose,
@@ -26,6 +27,12 @@ const navItems = [
     href: "/team",
     label: "Season Trends",
     icon: Activity,
+    roles: ["admin", "standard"],
+  },
+  {
+    href: "/events",
+    label: "Events",
+    icon: CalendarDays,
     roles: ["admin", "standard"],
   },
   {

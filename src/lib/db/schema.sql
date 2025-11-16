@@ -16,10 +16,20 @@ create table if not exists public.seasons (
   end_date date
 );
 
+create table if not exists public.events (
+  id bigserial primary key,
+  name text not null,
+  event_type text not null check (event_type in ('dual', 'tournament')) default 'dual',
+  date date not null,
+  opponent_school text,
+  created_at timestamptz default timezone('utc', now())
+);
+
 create table if not exists public.matches (
   id bigserial primary key,
   wrestler_id bigint not null references public.wrestlers(id),
   season_id bigint references public.seasons(id),
+  event_id bigint references public.events(id),
   opponent_name text not null,
   opponent_school text,
   weight_class text,

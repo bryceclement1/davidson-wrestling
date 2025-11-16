@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# PRD
+davidson_wrestling_analytics_all_documentation (1).md
