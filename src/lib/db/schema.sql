@@ -52,7 +52,16 @@ create table if not exists public.match_events (
   id bigserial primary key,
   match_id bigint not null references public.matches(id) on delete cascade,
   action_type text check (
-    action_type in ('takedown', 'takedown_attempt', 'escape', 'reversal', 'nearfall')
+    action_type in (
+      'takedown',
+      'takedown_attempt',
+      'escape',
+      'reversal',
+      'nearfall',
+      'riding_time',
+      'stall_call',
+      'caution'
+    )
   ) not null,
   period_order smallint not null,
   period_type text check (period_type in ('reg', 'ot', 'tb')) not null,
@@ -62,7 +71,7 @@ create table if not exists public.match_events (
   takedown_type text check (
     takedown_type in ('single', 'double', 'high_c', 'ankle_pick', 'throw', 'trip', 'other')
   ),
-  points smallint check (points in (2, 3, 4)),
+  points smallint check (points in (1, 2, 3, 4)),
   created_at timestamptz default timezone('utc', now())
 );
 

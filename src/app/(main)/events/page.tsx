@@ -1,11 +1,35 @@
 import { listEvents } from "@/lib/db/events";
-import { createEventAction, updateEventAction, deleteEventAction } from "./actions";
+import {
+  createEventAction,
+  updateEventAction,
+  deleteEventAction,
+} from "./actions";
 import { getAuthenticatedUser, assertRole } from "@/lib/auth/roles";
+import {
+  getDualEventSummary,
+  type DualEventSummary,
+} from "@/lib/db/matches";
+import type { MatchOutcomeType } from "@/types/match";
+import { clsx } from "clsx";
 
 export default async function EventsPage() {
   const events = await listEvents();
   const user = await getAuthenticatedUser();
   const canManage = assertRole(user, "admin");
+
+  const dualSummariesEntries = await Promise.all(
+    events.map(async (event) => {
+      if (event.type !== "dual") return [event.id, null] as const;
+      const summary = await getDualEventSummary(event.id);
+      return [event.id, summary] as const;
+    }),
+  );
+
+  const dualSummaryMap = new Map(
+    dualSummariesEntries.filter(
+      (entry): entry is [number, DualEventSummary] => entry[1] !== null,
+    ),
+  );
 
   return (
     <div className="space-y-6">
@@ -78,11 +102,20 @@ export default async function EventsPage() {
         <h3 className="text-lg font-semibold text-[var(--brand-navy)]">Upcoming & Logged Events</h3>
         {events.length ? (
           <div className="grid gap-3 md:grid-cols-2">
-            {events.map((event) => (
-              <article
-                key={event.id}
-                className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm"
-              >
+            {events.map((event) => {
+              const dualSummary =
+                event.type === "dual"
+                  ? dualSummaryMap.get(event.id) ?? {
+                      matches: [],
+                      ourScore: 0,
+                      opponentScore: 0,
+                    }
+                  : null;
+              return (
+                <article
+                  key={event.id}
+                  className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm"
+                >
                 <p className="text-xs uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
                   {event.type === "dual" ? "Dual Meet" : "Tournament"}
                 </p>
@@ -96,6 +129,12 @@ export default async function EventsPage() {
                   <p className="text-sm text-[var(--brand-navy)]">
                     vs. {event.opponentSchool}
                   </p>
+                )}
+                {dualSummary && (
+                  <DualScoreCard
+                    summary={dualSummary}
+                    opponent={event.opponentSchool ?? "Opponent"}
+                  />
                 )}
                 {canManage && (
                   <details className="mt-4 rounded-xl border border-dashed border-[var(--border)] p-3">
@@ -162,7 +201,8 @@ export default async function EventsPage() {
                   </details>
                 )}
               </article>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm text-[var(--neutral-gray)]">
@@ -175,13 +215,78 @@ export default async function EventsPage() {
 }
 
 function formatDate(dateString: string) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }).format(new Date(dateString));
-  } catch (error) {
-    return dateString;
-  }
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const outcomeLabels: Record<MatchOutcomeType, string> = {
+  decision: "Decision",
+  major_decision: "Major Decision",
+  tech_fall: "Tech Fall",
+  fall: "Fall",
+  forfeit: "Forfeit",
+  injury: "Injury",
+};
+
+function formatOutcomeLabel(outcome?: MatchOutcomeType) {
+  if (!outcome) return outcomeLabels.decision;
+  return outcomeLabels[outcome] ?? outcomeLabels.decision;
+}
+
+interface DualScoreCardProps {
+  summary: DualEventSummary;
+  opponent: string;
+}
+
+function DualScoreCard({ summary, opponent }: DualScoreCardProps) {
+  return (
+    <div className="mt-3 rounded-xl border border-[var(--border)] bg-white/80 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-[var(--brand-navy)]">
+          Dual Score
+        </p>
+        <p className="text-base font-semibold text-[var(--brand-navy)]">
+          Davidson {summary.ourScore} – {opponent} {summary.opponentScore}
+        </p>
+      </div>
+      {summary.matches.length ? (
+        <details className="mt-3 rounded-xl border border-dashed border-[var(--border)] p-3">
+          <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-[var(--brand-navy)]">
+            Match Results
+          </summary>
+          <ul className="mt-3 space-y-3 text-sm">
+            {summary.matches.map((match) => (
+              <li
+                key={match.id}
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-2 last:border-b-0"
+              >
+                <div>
+                  <p className="font-semibold text-[var(--brand-navy)]">
+                    {match.weightClass ?? "—"} ·{" "}
+                    {match.wrestlerName ?? `ID ${match.wrestlerId}`}
+                  </p>
+                  <p className="text-xs text-[var(--neutral-gray)]">
+                    {match.result === "L" ? "Loss" : "Win"} ·{" "}
+                    {formatOutcomeLabel(match.outcomeType)}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-[var(--brand-navy)]">
+                  {match.ourScore}-{match.opponentScore}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : (
+        <p className="mt-3 text-sm text-[var(--neutral-gray)]">
+          No dual matches logged yet.
+        </p>
+      )}
+    </div>
+  );
 }

@@ -65,7 +65,10 @@ export interface Database {
             | "takedown_attempt"
             | "escape"
             | "reversal"
-            | "nearfall";
+            | "nearfall"
+            | "riding_time"
+            | "stall_call"
+            | "caution";
           period_order: number;
           period_type: "reg" | "ot" | "tb";
           period_number: number;
