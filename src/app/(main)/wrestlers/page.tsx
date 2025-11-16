@@ -3,7 +3,11 @@ import { ArrowUpRight } from "lucide-react";
 import { getRoster } from "@/lib/db/wrestlers";
 import { getWrestlerSeasonStats } from "@/lib/analytics/wrestlerQueries";
 import { getAuthenticatedUser, assertRole } from "@/lib/auth/roles";
-import { addWrestlerAction } from "./actions";
+import {
+  addWrestlerAction,
+  updateWrestlerAction,
+  deleteWrestlerAction,
+} from "./actions";
 
 export default async function WrestlersPage() {
   const roster = await getRoster();
@@ -31,12 +35,14 @@ export default async function WrestlersPage() {
       </header>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {stats.map(({ wrestler, data }) => (
-          <Link
+          <article
             key={wrestler.id}
-            href={`/wrestlers/${wrestler.id}`}
-            className="card-surface group space-y-3 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="card-surface space-y-3 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
-            <div className="flex items-center justify-between gap-2">
+            <Link
+              href={`/wrestlers/${wrestler.id}`}
+              className="flex items-center justify-between gap-2"
+            >
               <div>
                 <p className="text-lg font-semibold text-[var(--brand-navy)]">
                   {wrestler.name}
@@ -46,7 +52,7 @@ export default async function WrestlersPage() {
                 </p>
               </div>
               <ArrowUpRight className="text-[var(--brand-navy)]" />
-            </div>
+            </Link>
             {data ? (
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -71,7 +77,62 @@ export default async function WrestlersPage() {
                 No matches logged yet.
               </p>
             )}
-          </Link>
+            {canManageRoster && (
+              <details className="rounded-xl border border-dashed border-[var(--border)] p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--brand-navy)]">
+                  Edit Wrestler
+                </summary>
+                <form
+                  action={updateWrestlerAction}
+                  className="mt-3 grid gap-2 text-sm"
+                >
+                  <input type="hidden" name="id" value={wrestler.id} />
+                  <label className="flex flex-col gap-1">
+                    Name
+                    <input
+                      name="name"
+                      defaultValue={wrestler.name}
+                      className="rounded-lg border border-[var(--border)] px-3 py-2"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    Class Year
+                    <input
+                      name="classYear"
+                      defaultValue={wrestler.classYear ?? ""}
+                      className="rounded-lg border border-[var(--border)] px-3 py-2"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    Weight Class
+                    <input
+                      name="primaryWeightClass"
+                      defaultValue={wrestler.primaryWeightClass ?? ""}
+                      className="rounded-lg border border-[var(--border)] px-3 py-2"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="rounded-full bg-[var(--brand-navy)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white"
+                  >
+                    Save
+                  </button>
+                </form>
+                <form
+                  action={deleteWrestlerAction}
+                  className="mt-2 inline-block"
+                >
+                  <input type="hidden" name="id" value={wrestler.id} />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-[var(--danger-red)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--danger-red)]"
+                  >
+                    Remove Wrestler
+                  </button>
+                </form>
+              </details>
+            )}
+          </article>
         ))}
       </div>
     </div>

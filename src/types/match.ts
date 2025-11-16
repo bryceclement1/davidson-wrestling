@@ -2,6 +2,13 @@ import type { MatchEvent } from "./events";
 
 export type MatchResult = "W" | "L" | "D" | "FF";
 export type MatchType = "dual" | "tournament";
+export type MatchOutcomeType =
+  | "decision"
+  | "major_decision"
+  | "tech_fall"
+  | "fall"
+  | "forfeit"
+  | "injury";
 
 export interface MatchMeta {
   id?: number;
@@ -13,6 +20,7 @@ export interface MatchMeta {
   eventId?: number | null;
   matchType: MatchType;
   eventName?: string;
+  outcomeType?: MatchOutcomeType;
   date: string;
   result: MatchResult;
   ourScore: number;

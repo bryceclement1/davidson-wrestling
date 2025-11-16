@@ -8,6 +8,13 @@ export interface CreateEventPayload {
   opponentSchool?: string;
 }
 
+export interface UpdateEventPayload {
+  name?: string;
+  date?: string;
+  eventType?: EventType;
+  opponentSchool?: string | null;
+}
+
 function mapRowToEvent(row: {
   id: number;
   name: string;
@@ -68,4 +75,52 @@ export async function createEvent(payload: CreateEventPayload) {
   }
 
   return mapRowToEvent(data);
+}
+
+export async function updateEvent(id: number, payload: UpdateEventPayload) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    throw new Error("Supabase unavailable");
+  }
+
+  const updates: Record<string, unknown> = {};
+  if (payload.name !== undefined) updates.name = payload.name;
+  if (payload.date !== undefined) updates.date = payload.date;
+  if (payload.eventType !== undefined) updates.event_type = payload.eventType;
+  if (payload.opponentSchool !== undefined) {
+    updates.opponent_school =
+      payload.eventType === "dual"
+        ? payload.opponentSchool ?? null
+        : payload.opponentSchool;
+  }
+
+  const { data, error } = await supabase
+    .from("events")
+    .update(updates)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to update event", error);
+    throw new Error("Unable to update event");
+  }
+
+  return mapRowToEvent(data);
+}
+
+export async function deleteEvent(id: number) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    throw new Error("Supabase unavailable");
+  }
+
+  const { error } = await supabase.from("events").delete().eq("id", id);
+
+  if (error) {
+    console.error("Failed to delete event", error);
+    throw new Error("Unable to delete event");
+  }
 }

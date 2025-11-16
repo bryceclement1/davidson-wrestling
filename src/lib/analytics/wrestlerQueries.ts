@@ -82,6 +82,7 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
     seasonId: row.season_id ?? undefined,
     matchType: row.match_type,
     eventName: row.event_name ?? undefined,
+    outcomeType: row.outcome_type ?? undefined,
     date: row.date,
     result: row.result,
     ourScore: row.our_score ?? 0,
