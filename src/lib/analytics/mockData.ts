@@ -1,9 +1,6 @@
 import type { MatchEvent } from "@/types/events";
 import type { MatchWithEvents } from "@/types/match";
-import type {
-  TeamDashboardData,
-  WrestlerSeasonStats,
-} from "@/types/analytics";
+import type { TeamPeriodStat, WrestlerSeasonStats } from "@/types/analytics";
 import type { Wrestler } from "@/types/wrestler";
 
 export const mockWrestlers: Wrestler[] = [
@@ -151,72 +148,44 @@ export const mockMatches: MatchWithEvents[] = [
   },
 ];
 
-export const mockTeamDashboard: TeamDashboardData = {
-  seasonLabel: "2024-25 Regular Season",
-  record: "9-3",
-  matchesLogged: 58,
-  totalPointsFor: 192,
-  totalPointsAgainst: 141,
-  firstTakedownWinPct: 0.71,
-  ridingTimeAdvantagePct: 0.64,
-  periodStats: [
-    {
-      periodLabel: "Period 1",
-      periodOrder: 1,
-      takedownsFor: 42,
-      takedownsAgainst: 28,
-      attemptsFor: 88,
-      attemptsAgainst: 65,
-      pointsDifferential: 3.9,
-    },
-    {
-      periodLabel: "Period 2",
-      periodOrder: 2,
-      takedownsFor: 28,
-      takedownsAgainst: 31,
-      attemptsFor: 61,
-      attemptsAgainst: 59,
-      pointsDifferential: 0.4,
-    },
-    {
-      periodLabel: "Period 3",
-      periodOrder: 3,
-      takedownsFor: 19,
-      takedownsAgainst: 25,
-      attemptsFor: 43,
-      attemptsAgainst: 57,
-      pointsDifferential: -1.2,
-    },
-    {
-      periodLabel: "OT",
-      periodOrder: 4,
-      takedownsFor: 6,
-      takedownsAgainst: 2,
-      attemptsFor: 10,
-      attemptsAgainst: 7,
-      pointsDifferential: 1.6,
-    },
-  ],
-  leaderboards: {
-    wins: [
-      { id: 1, label: "Ethan Blake", value: "18-4", helper: "82% win rate" },
-      { id: 2, label: "Miles Carter", value: "16-6", helper: "73% win rate" },
-    ],
-    takedowns: [
-      { id: 3, label: "Jackson Rivera", value: "41", helper: "2.1 per match" },
-      { id: 4, label: "Logan Smith", value: "38", helper: "1.9 per match" },
-    ],
-    thirdPeriod: [
-      { id: 5, label: "Ethan Blake", value: "+18", helper: "3rd period diff" },
-      { id: 2, label: "Miles Carter", value: "+11", helper: "3rd period diff" },
-    ],
-    firstTakedown: [
-      { id: 3, label: "Jackson Rivera", value: "78%", helper: "Min 8 matches" },
-      { id: 1, label: "Ethan Blake", value: "74%", helper: "Min 8 matches" },
-    ],
+export const mockTeamPeriodStats: TeamPeriodStat[] = [
+  {
+    periodLabel: "Period 1",
+    periodOrder: 1,
+    takedownsFor: 42,
+    takedownsAgainst: 28,
+    attemptsFor: 88,
+    attemptsAgainst: 65,
+    pointsDifferential: 3.9,
   },
-  recentMatches: mockMatches,
-};
+  {
+    periodLabel: "Period 2",
+    periodOrder: 2,
+    takedownsFor: 28,
+    takedownsAgainst: 31,
+    attemptsFor: 61,
+    attemptsAgainst: 59,
+    pointsDifferential: 0.4,
+  },
+  {
+    periodLabel: "Period 3",
+    periodOrder: 3,
+    takedownsFor: 19,
+    takedownsAgainst: 25,
+    attemptsFor: 43,
+    attemptsAgainst: 57,
+    pointsDifferential: -1.2,
+  },
+  {
+    periodLabel: "OT",
+    periodOrder: 4,
+    takedownsFor: 6,
+    takedownsAgainst: 2,
+    attemptsFor: 10,
+    attemptsAgainst: 7,
+    pointsDifferential: 1.6,
+  },
+];
 
 export const mockWrestlerStats: Record<number, WrestlerSeasonStats> = {
   1: {

@@ -87,7 +87,10 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
     result: row.result,
     ourScore: row.our_score ?? 0,
     opponentScore: row.opponent_score ?? 0,
-    firstTakedownScorer: row.first_takedown_scorer ?? undefined,
+    firstTakedownScorer: deriveFirstTakedownFromEvents(
+      events,
+      row.first_takedown_scorer,
+    ),
     ourRidingTimeSeconds: row.our_riding_time_seconds ?? undefined,
     opponentRidingTimeSeconds: row.opponent_riding_time_seconds ?? undefined,
     events,
@@ -201,4 +204,19 @@ function getPeriodOrder(periodType: MatchEvent["periodType"], periodNumber: numb
   if (periodType === "reg") return periodNumber;
   if (periodType === "ot") return 100 + periodNumber;
   return 200 + periodNumber;
+}
+function deriveFirstTakedownFromEvents(
+  events: MatchEvent[],
+  fallback?: "us" | "opponent" | "none" | null,
+) {
+  const takedown = events
+    .filter((event) => event.actionType === "takedown")
+    .sort((a, b) => a.periodOrder - b.periodOrder)[0];
+  if (takedown && takedown.scorer !== "none") {
+    return takedown.scorer;
+  }
+  if (fallback && fallback !== "none") {
+    return fallback;
+  }
+  return undefined;
 }
