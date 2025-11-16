@@ -3,7 +3,10 @@ export type ActionType =
   | "takedown_attempt"
   | "escape"
   | "reversal"
-  | "nearfall";
+  | "nearfall"
+  | "riding_time"
+  | "stall_call"
+  | "caution";
 
 export type PeriodType = "reg" | "ot" | "tb";
 
@@ -28,6 +31,6 @@ export interface MatchEvent {
   scorer: MatchSide;
   attacker?: Exclude<MatchSide, "none">;
   takedownType?: TakedownType;
-  points?: 2 | 3 | 4;
+  points?: 1 | 2 | 3 | 4;
   createdAt?: string;
 }

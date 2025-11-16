@@ -1,6 +1,12 @@
-import type { MatchLogPayload, MatchWithEvents } from "@/types/match";
+import type {
+  MatchLogPayload,
+  MatchOutcomeType,
+  MatchResult,
+  MatchWithEvents,
+} from "@/types/match";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockMatches } from "@/lib/analytics/mockData";
+import type { Database } from "@/types/database";
 
 export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
   const supabase = await createSupabaseServerClient();
@@ -113,4 +119,110 @@ export async function persistMatchLog(payload: MatchLogPayload) {
   }
 
   return { success: true };
+}
+
+const dualOutcomePoints: Record<MatchOutcomeType, number> = {
+  decision: 3,
+  major_decision: 4,
+  tech_fall: 5,
+  fall: 6,
+  forfeit: 6,
+  injury: 6,
+};
+
+type MatchRow = Database["public"]["Tables"]["matches"]["Row"] & {
+  wrestlers?: {
+    name?: string | null;
+  } | null;
+};
+
+export interface DualMatchSummary {
+  id: number;
+  wrestlerId: number;
+  wrestlerName?: string;
+  opponentName: string;
+  weightClass?: string | null;
+  result: MatchResult;
+  outcomeType?: MatchOutcomeType | null;
+  ourScore: number;
+  opponentScore: number;
+}
+
+export interface DualEventSummary {
+  matches: DualMatchSummary[];
+  ourScore: number;
+  opponentScore: number;
+}
+
+function calculateDualPoints(
+  result: MatchResult,
+  outcomeType?: MatchOutcomeType | null,
+) {
+  const points = dualOutcomePoints[outcomeType ?? "decision"] ?? 3;
+  if (result === "W" || result === "FF") {
+    return { forUs: points, forThem: 0 };
+  }
+  if (result === "L") {
+    return { forUs: 0, forThem: points };
+  }
+  return { forUs: 0, forThem: 0 };
+}
+
+function weightRank(weightClass?: string | null) {
+  if (!weightClass) return Number.MAX_SAFE_INTEGER;
+  const numeric = parseInt(weightClass, 10);
+  if (Number.isNaN(numeric)) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  return numeric;
+}
+
+export async function getDualEventSummary(
+  eventId: number,
+): Promise<DualEventSummary> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return { matches: [], ourScore: 0, opponentScore: 0 };
+  }
+
+  const { data, error } = await supabase
+    .from("matches")
+    .select(
+      "id,wrestler_id,opponent_name,weight_class,result,outcome_type,match_type,our_score,opponent_score,wrestlers(name)",
+    )
+    .eq("event_id", eventId)
+    .eq("match_type", "dual");
+
+  if (error || !data) {
+    console.error("Dual event query failed", error);
+    return { matches: [], ourScore: 0, opponentScore: 0 };
+  }
+
+  let ourScore = 0;
+  let opponentScore = 0;
+
+  const matches = (data as MatchRow[])
+    .map((match) => {
+      const { forUs, forThem } = calculateDualPoints(
+        match.result,
+        match.outcome_type as MatchOutcomeType | undefined,
+      );
+      ourScore += forUs;
+      opponentScore += forThem;
+      return {
+        id: match.id,
+        wrestlerId: match.wrestler_id,
+        wrestlerName: match.wrestlers?.name ?? undefined,
+        opponentName: match.opponent_name,
+        weightClass: match.weight_class ?? undefined,
+        result: match.result,
+        outcomeType: match.outcome_type as MatchOutcomeType | undefined,
+        ourScore: match.our_score ?? 0,
+        opponentScore: match.opponent_score ?? 0,
+      } satisfies DualMatchSummary;
+    })
+    .sort((a, b) => weightRank(a.weightClass) - weightRank(b.weightClass));
+
+  return { matches, ourScore, opponentScore };
 }

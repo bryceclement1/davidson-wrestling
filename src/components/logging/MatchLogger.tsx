@@ -61,6 +61,15 @@ function formatOutcomeLabel(value?: MatchOutcomeType) {
   return outcomeOptions.find((option) => option.value === value)?.label ?? "Decision";
 }
 
+function formatDateLabel(dateString: string) {
+  const date = new Date(`${dateString}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateString;
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [periodIndex, setPeriodIndex] = useState(0);
   const [loggedEvents, setLoggedEvents] = useState<MatchEvent[]>([]);
@@ -77,16 +86,17 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const defaultWrestlerId = roster[0]?.id ?? 0;
+  const defaultEvent = availableEvents[0] ?? null;
   const [matchMeta, setMatchMeta] = useState<MatchMeta>({
     wrestlerId: defaultWrestlerId,
     opponentName: "",
     opponentSchool: "",
     weightClass: roster[0]?.primaryWeightClass ?? "",
-    matchType: "dual",
-    eventId: null,
-    eventName: "",
+    matchType: defaultEvent?.type ?? "dual",
+    eventId: defaultEvent?.id ?? null,
+    eventName: defaultEvent?.name ?? "",
     outcomeType: "decision",
-    date: new Date().toISOString().slice(0, 10),
+    date: defaultEvent?.date ?? new Date().toISOString().slice(0, 10),
     result: "W",
     ourScore: 0,
     opponentScore: 0,
@@ -130,6 +140,11 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
 
     if (actionType === "nearfall") {
       setPrompt({ mode: "nearfall", scorer });
+      return;
+    }
+
+    if (actionType === "riding_time") {
+      addEvent({ actionType, scorer, points: 1 });
       return;
     }
 
@@ -267,41 +282,33 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               }
             />
           </label>
-          {availableEvents.length > 0 && (
-            <label className="text-sm font-semibold text-[var(--brand-navy)]">
-              Linked Event
+          <div className="text-sm font-semibold text-[var(--brand-navy)]">
+            <p>Event</p>
+            {availableEvents.length ? (
               <Select
                 className="mt-1"
                 value={matchMeta.eventId ? String(matchMeta.eventId) : ""}
                 onChange={(event) => handleEventSelect(event.target.value)}
               >
-                <option value="">None / Custom</option>
                 {availableEvents.map((event) => (
                   <option key={event.id} value={event.id}>
-                    {event.name} ({event.type === "dual" ? "Dual" : "Tournament"})
+                    {event.name} ({formatDateLabel(event.date)})
                   </option>
                 ))}
               </Select>
-            </label>
-          )}
+            ) : (
+              <p className="mt-2 rounded-lg border border-dashed border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-xs font-normal text-[var(--neutral-gray)]">
+                Create an event before logging matches.
+              </p>
+            )}
+          </div>
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
             Event Date
             <Input
               type="date"
               className="mt-1"
               value={matchMeta.date}
-              onChange={(event) => handleMetaChange("date", event.target.value)}
-            />
-          </label>
-          <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            Event Name
-            <Input
-              className="mt-1"
-              placeholder="Optional if linked above"
-              value={matchMeta.eventName ?? ""}
-              onChange={(event) =>
-                handleMetaChange("eventName", event.target.value)
-              }
+              disabled
             />
           </label>
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
@@ -309,9 +316,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
             <Select
               className="mt-1"
               value={matchMeta.matchType}
-              onChange={(event) =>
-                handleMetaChange("matchType", event.target.value as MatchMeta["matchType"])
-              }
+              disabled
             >
               <option value="dual">Dual</option>
               <option value="tournament">Tournament</option>
