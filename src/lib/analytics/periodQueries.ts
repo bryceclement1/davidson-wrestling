@@ -1,0 +1,41 @@
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { TeamPeriodStat, WrestlerPeriodBreakdown } from "@/types/analytics";
+import { mockTeamDashboard, mockWrestlerStats } from "./mockData";
+
+export async function getTeamPeriodBreakdown(): Promise<TeamPeriodStat[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockTeamDashboard.periodStats;
+  }
+
+  const { data, error } = await supabase.rpc("get_team_period_stats");
+
+  if (error || !data) {
+    console.error("Team period stats RPC failed", error);
+    return mockTeamDashboard.periodStats;
+  }
+
+  return data as TeamPeriodStat[];
+}
+
+export async function getWrestlerPeriodBreakdown(
+  wrestlerId: number,
+): Promise<WrestlerPeriodBreakdown[]> {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return mockWrestlerStats[wrestlerId]?.periods ?? [];
+  }
+
+  const { data, error } = await supabase.rpc("get_wrestler_period_stats", {
+    wrestler_id: wrestlerId,
+  });
+
+  if (error || !data) {
+    console.error("Wrestler period stats RPC failed", error);
+    return mockWrestlerStats[wrestlerId]?.periods ?? [];
+  }
+
+  return data as WrestlerPeriodBreakdown[];
+}
