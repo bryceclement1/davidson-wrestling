@@ -6,7 +6,8 @@ export type ActionType =
   | "nearfall"
   | "riding_time"
   | "stall_call"
-  | "caution";
+  | "caution"
+  | "ride_out";
 
 export type PeriodType = "reg" | "ot" | "tb";
 
