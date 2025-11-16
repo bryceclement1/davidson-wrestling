@@ -16,6 +16,7 @@ const controls: { action: ActionType; label: string }[] = [
   { action: "riding_time", label: "Riding Time Point" },
   { action: "stall_call", label: "Stall Call" },
   { action: "caution", label: "Caution" },
+  { action: "ride_out", label: "Ride Out" },
 ] as const;
 
 const sides: { scorer: MatchSide; label: string }[] = [

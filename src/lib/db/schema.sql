@@ -60,7 +60,8 @@ create table if not exists public.match_events (
       'nearfall',
       'riding_time',
       'stall_call',
-      'caution'
+      'caution',
+      'ride_out'
     )
   ) not null,
   period_order smallint not null,

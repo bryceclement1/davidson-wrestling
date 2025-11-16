@@ -35,7 +35,8 @@ type PromptState =
       scorer: MatchSide;
       actionType: "takedown" | "takedown_attempt";
     }
-  | { mode: "nearfall"; scorer: MatchSide };
+  | { mode: "nearfall"; scorer: MatchSide }
+  | { mode: "stall"; scorer: MatchSide };
 
 const takedownTypes: TakedownType[] = [
   "single",
@@ -148,10 +149,25 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
       return;
     }
 
+    if (actionType === "stall_call") {
+      setPrompt({ mode: "stall", scorer });
+      return;
+    }
+
+    if (actionType === "ride_out") {
+      addEvent({ actionType, scorer });
+      return;
+    }
+
+    if (actionType === "reversal") {
+      addEvent({ actionType, scorer, points: 2 });
+      return;
+    }
+
     addEvent({ actionType, scorer });
   };
 
-  const handlePromptSelect = (value: TakedownType | 2 | 3 | 4) => {
+  const handlePromptSelect = (value: TakedownType | 0 | 1 | 2 | 3 | 4) => {
     if (!prompt) return;
 
     if (prompt.mode === "takedown") {
@@ -162,12 +178,19 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         scorer: prompt.scorer,
         takedownType,
         attacker: prompt.scorer,
+        points: prompt.actionType === "takedown" ? 3 : undefined,
       });
     } else if (prompt.mode === "nearfall") {
       addEvent({
         actionType: "nearfall",
         scorer: prompt.scorer,
         points: value as 2 | 3 | 4,
+      });
+    } else if (prompt.mode === "stall") {
+      addEvent({
+        actionType: "stall_call",
+        scorer: prompt.scorer,
+        points: value as 0 | 1 | 2,
       });
     }
   };
@@ -559,6 +582,42 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
             </p>
             <div className="mt-4 grid grid-cols-3 gap-3">
               {nearfallPoints.map((value) => (
+                <button
+                  key={value}
+                  onClick={() => handlePromptSelect(value)}
+                  className="rounded-xl border border-[var(--border)] px-4 py-3 text-lg font-semibold text-[var(--brand-navy)]"
+                >
+                  {value}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 text-right">
+              <button
+                type="button"
+                className="text-sm font-semibold text-[var(--neutral-gray)]"
+                onClick={dismissPrompt}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {prompt?.mode === "stall" && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={dismissPrompt}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+              Stall Call Points
+            </p>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              {[0, 1, 2].map((value) => (
                 <button
                   key={value}
                   onClick={() => handlePromptSelect(value)}
