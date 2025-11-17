@@ -71,4 +71,5 @@ export async function deleteMatchAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath(`/admin/matches/${id}`);
+  redirect("/admin");
 }

@@ -9,11 +9,6 @@ export type SignUpState =
   | { status: "error"; message: string; email?: string }
   | { status: "verify"; message?: string; email: string };
 
-export type VerifyState =
-  | { status: "idle"; message?: string }
-  | { status: "error"; message: string }
-  | { status: "success"; message?: string };
-
 export async function loginAction(formData: FormData) {
   const supabase = await createSupabaseServerClient();
   const email = (formData.get("email") as string)?.trim();
@@ -76,35 +71,6 @@ export async function signUpAction(
     email,
     message: "We sent a verification code to your email.",
   };
-}
-
-export async function verifyEmailAction(
-  _prevState: VerifyState | undefined,
-  formData: FormData,
-): Promise<VerifyState> {
-  const supabase = await createSupabaseServerClient();
-  const email = (formData.get("email") as string)?.trim();
-  const token = (formData.get("token") as string)?.trim();
-
-  if (!email || !token) {
-    return { status: "error", message: "Email and code are required" };
-  }
-
-  if (!supabase) {
-    return { status: "success", message: "Verified (mock mode)" };
-  }
-
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "signup",
-  });
-
-  if (error) {
-    return { status: "error", message: error.message };
-  }
-
-  return { status: "success", message: "Email verified. Please sign in." };
 }
 
 export async function logoutAction() {

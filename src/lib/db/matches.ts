@@ -163,8 +163,12 @@ export async function getMatchById(id: number): Promise<MatchWithEvents | null> 
     .eq("id", id)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
     console.error("Match lookup failed", error);
+    return null;
+  }
+
+  if (!data) {
     return null;
   }
 

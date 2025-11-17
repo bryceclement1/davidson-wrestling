@@ -2,37 +2,28 @@
 
 import { useState } from "react";
 import { useActionState } from "react";
-import { loginAction, signUpAction, verifyEmailAction } from "@/app/(auth)/actions";
-import type { SignUpState, VerifyState } from "@/app/(auth)/actions";
+import { loginAction, signUpAction } from "@/app/(auth)/actions";
+import type { SignUpState } from "@/app/(auth)/actions";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { AuthForm } from "./AuthForm";
 
 const signUpInitial: SignUpState = { status: "idle" };
-const verifyInitial: VerifyState = { status: "idle" };
 
 export function AuthPanel() {
   const [baseMode, setBaseMode] = useState<"signin" | "signup">("signin");
   const [signUpState, signUpDispatch] = useActionState(signUpAction, signUpInitial);
-  const [verifyState, verifyDispatch] = useActionState(
-    verifyEmailAction,
-    verifyInitial,
-  );
 
   const shouldShowVerify = signUpState.status === "verify";
-  const mode = verifyState.status === "success" ? "signin" : baseMode;
+  const mode = shouldShowVerify ? "verify" : baseMode;
   const pendingEmail = signUpState.email ?? "";
 
   const infoMessage =
-    verifyState.status === "success"
-      ? verifyState.message ?? "Email verified. Please sign in."
-      : verifyState.status === "error"
-        ? verifyState.message ?? "Unable to verify email."
-        : signUpState.status === "error"
-          ? signUpState.message ?? "Unable to sign up."
-          : signUpState.status === "verify"
-            ? signUpState.message ?? "We sent a verification link to your email."
-            : null;
+    signUpState.status === "error"
+      ? signUpState.message ?? "Unable to sign up."
+      : signUpState.status === "verify"
+        ? signUpState.message ?? "We sent a verification link to your email."
+        : null;
 
   return (
     <div className="mt-6 space-y-4">

@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   LeaderboardEntry,
   PeriodPointsAverages,
+  ShotAttemptsByPeriod,
   StallPeriodBreakdown,
   TeamDashboardData,
 } from "@/types/analytics";
@@ -124,6 +125,12 @@ interface MatchAnalysis {
   stallCalls: { us: number; opponent: number };
   stallByPeriod: Map<string, StallPeriodBreakdown>;
   periodPoints: Map<string, PeriodPointsAverages>;
+  takedownsByPeriod: Map<
+    string,
+    { label: string; order: number; us: number; opponent: number; matchesLogged: number }
+  >;
+  shotAttemptsByPeriod: Map<string, ShotAttemptsByPeriod>;
+  takedownsInP3: { us: number; opponent: number };
   ridingTimePoint: { us: boolean; opponent: boolean };
   zeroEscapes: boolean;
   hadReg1Data: boolean;
@@ -163,6 +170,20 @@ function analyzeMatch(match: MatchWithEvents): MatchAnalysis {
   const stallCalls = { us: 0, opponent: 0 };
   const stallByPeriod = new Map<string, StallPeriodBreakdown>();
   const periodPoints = new Map<string, PeriodPointsAverages>();
+  const takedownsByPeriod = new Map<
+    string,
+    {
+      label: string;
+      order: number;
+      us: number;
+      opponent: number;
+      matchesLogged: number;
+    }
+  >();
+  const shotAttemptsByPeriod = new Map<string, ShotAttemptsByPeriod>();
+  const periodSeen = new Set<string>();
+  let p3TakedownsUs = 0;
+  let p3TakedownsOpponent = 0;
   let ridingTimePointUs = false;
   let ridingTimePointOpponent = false;
   let overtime = false;
@@ -171,6 +192,16 @@ function analyzeMatch(match: MatchWithEvents): MatchAnalysis {
     const key = getPeriodKey(event.periodType, event.periodNumber);
     const label = formatPeriodLabel(event.periodType, event.periodNumber);
     const order = getPeriodOrder(event.periodType, event.periodNumber);
+
+    let takedownEntry = takedownsByPeriod.get(key);
+    if (!takedownEntry) {
+      takedownEntry = { label, order, us: 0, opponent: 0, matchesLogged: 0 };
+    }
+    if (!periodSeen.has(key)) {
+      takedownEntry.matchesLogged += 1;
+      periodSeen.add(key);
+    }
+    takedownsByPeriod.set(key, takedownEntry);
 
     const periodEntry =
       periodPoints.get(key) ??
@@ -202,13 +233,33 @@ function analyzeMatch(match: MatchWithEvents): MatchAnalysis {
     }
 
     if (event.actionType === "takedown") {
-      if (event.scorer === "us") takedowns.us += 1;
-      if (event.scorer === "opponent") takedowns.opponent += 1;
+      const takedownEntry = takedownsByPeriod.get(key)!;
+      if (event.scorer === "us") {
+        takedowns.us += 1;
+        takedownEntry.us += 1;
+        if (event.periodType === "reg" && event.periodNumber === 3) {
+          p3TakedownsUs += 1;
+        }
+      }
+      if (event.scorer === "opponent") {
+        takedowns.opponent += 1;
+        takedownEntry.opponent += 1;
+        if (event.periodType === "reg" && event.periodNumber === 3) {
+          p3TakedownsOpponent += 1;
+        }
+      }
+      takedownsByPeriod.set(key, takedownEntry);
     }
 
     if (event.actionType === "takedown_attempt") {
       if (event.attacker === "us") attempts.us += 1;
       if (event.attacker === "opponent") attempts.opponent += 1;
+      if (event.attacker === "us") {
+        const attemptEntry =
+          shotAttemptsByPeriod.get(key) ?? { label, order, attempts: 0 };
+        attemptEntry.attempts += 1;
+        shotAttemptsByPeriod.set(key, attemptEntry);
+      }
     }
 
     if (event.actionType === "reversal") {
@@ -285,6 +336,9 @@ function analyzeMatch(match: MatchWithEvents): MatchAnalysis {
     stallCalls,
     stallByPeriod,
     periodPoints,
+    takedownsByPeriod,
+    shotAttemptsByPeriod,
+    takedownsInP3: { us: p3TakedownsUs, opponent: p3TakedownsOpponent },
     ridingTimePoint: { us: ridingTimePointUs, opponent: ridingTimePointOpponent },
     zeroEscapes: escapes.us === 0,
     hadReg1Data: reachedReg1,
@@ -331,8 +385,22 @@ function buildTeamDashboardData(
   let majorDecisionWins = 0;
   let techFallWins = 0;
   let fallWins = 0;
+  let p3TakedownsFor = 0;
+  let p3TakedownsAgainst = 0;
 
-  const stallByPeriodAggregate = new Map<string, StallPeriodBreakdown>();
+  const takedownPeriodAggregate = new Map<
+    string,
+    { label: string; order: number; us: number; opponent: number; matches: number }
+  >();
+  const shotAttemptsAggregate = new Map<
+    string,
+    { label: string; order: number; attempts: number }
+  >();
+
+  const stallByPeriodAggregate = new Map<
+    string,
+    StallPeriodBreakdown & { matchesLogged: number }
+  >();
   const pointsByPeriodAggregate = new Map<
     string,
     PeriodPointsAverages & { matches: number }
@@ -408,6 +476,35 @@ function buildTeamDashboardData(
 
     stallCallsFor += analysis.stallCalls.us;
     stallCallsAgainst += analysis.stallCalls.opponent;
+
+    p3TakedownsFor += analysis.takedownsInP3.us;
+    p3TakedownsAgainst += analysis.takedownsInP3.opponent;
+
+    analysis.takedownsByPeriod.forEach((entry, key) => {
+      const aggregate =
+        takedownPeriodAggregate.get(key) ?? {
+          label: entry.label,
+          order: entry.order,
+          us: 0,
+          opponent: 0,
+          matches: 0,
+        };
+      aggregate.us += entry.us;
+      aggregate.opponent += entry.opponent;
+      aggregate.matches += entry.matchesLogged;
+      takedownPeriodAggregate.set(key, aggregate);
+    });
+
+    analysis.shotAttemptsByPeriod.forEach((entry, key) => {
+      const aggregate =
+        shotAttemptsAggregate.get(key) ?? {
+          label: entry.label,
+          order: entry.order,
+          attempts: 0,
+        };
+      aggregate.attempts += entry.attempts;
+      shotAttemptsAggregate.set(key, aggregate);
+    });
 
     if (analysis.ridingTimePoint.us) ridingTimeMatchesFor += 1;
     if (analysis.ridingTimePoint.opponent) ridingTimeMatchesAgainst += 1;
@@ -503,18 +600,43 @@ function buildTeamDashboardData(
   const matchesLogged = matches.length;
   const record =
     draws > 0 ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`;
+  const rideOutAvg = {
+    us: matchesLogged > 0 ? rideOutsFor / matchesLogged : 0,
+    opponent: matchesLogged > 0 ? rideOutsAgainst / matchesLogged : 0,
+  };
+  const reversalsAvg = {
+    us: matchesLogged > 0 ? reversalsFor / matchesLogged : 0,
+    opponent: matchesLogged > 0 ? reversalsAgainst / matchesLogged : 0,
+  };
 
-  const averagePointsByPeriod = Array.from(pointsByPeriodAggregate.values())
-    .sort((a, b) => a.order - b.order)
-    .map((entry) => ({
-      label: entry.label,
-      order: entry.order,
-      us: entry.matches ? entry.us / entry.matches : 0,
-      opponent: entry.matches ? entry.opponent / entry.matches : 0,
-    }));
+  const averagePointsByPeriod = ensureRegPeriodAveragePoints(
+    Array.from(pointsByPeriodAggregate.values())
+      .sort((a, b) => a.order - b.order)
+      .map((entry) => ({
+        label: entry.label,
+        order: entry.order,
+        us: matchesLogged ? entry.us / matchesLogged : 0,
+        opponent: matchesLogged ? entry.opponent / matchesLogged : 0,
+      })),
+  );
 
-  const stallByPeriod = Array.from(stallByPeriodAggregate.values()).sort(
-    (a, b) => a.order - b.order,
+  const avgTakedownsByPeriod = ensureRegPeriodTakedowns(takedownPeriodAggregate);
+
+  const shotAttemptsByPeriod = ensureShotPeriodEntriesTeam(
+    shotAttemptsAggregate,
+    matchesLogged,
+  );
+
+  const stallByPeriod = ensureRegPeriodStall(
+    Array.from(stallByPeriodAggregate.values())
+      .sort((a, b) => a.order - b.order)
+      .map((entry) => ({
+        label: entry.label,
+        order: entry.order,
+        matchesLogged: matchesLogged,
+        us: matchesLogged ? entry.us / matchesLogged : 0,
+        opponent: matchesLogged ? entry.opponent / matchesLogged : 0,
+      })),
   );
 
   const leaderboards = {
@@ -587,13 +709,21 @@ function buildTeamDashboardData(
         attemptsAgainst + takedownsAgainst > 0
           ? takedownsAgainst / (attemptsAgainst + takedownsAgainst)
           : 0,
+      ourTakedowns: takedownsFor,
+      opponentTakedowns: takedownsAgainst,
       ourAttempts: attemptsFor,
       opponentAttempts: attemptsAgainst,
+      avgTakedownsInP3: {
+        us: matchesLogged > 0 ? p3TakedownsFor / matchesLogged : 0,
+        opponent: matchesLogged > 0 ? p3TakedownsAgainst / matchesLogged : 0,
+      },
+      avgTakedownsByPeriod,
+      shotAttemptsByPeriod,
     },
     topBottom: {
       zeroEscapePct:
         matches.length > 0 ? zeroEscapeMatches / matches.length : 0,
-      rideOuts: { us: rideOutsFor, opponent: rideOutsAgainst },
+      rideOutAvg: rideOutAvg,
       ridingTimePointPct: {
         us:
           matches.length > 0
@@ -604,7 +734,7 @@ function buildTeamDashboardData(
             ? ridingTimeMatchesAgainst / matches.length
             : 0,
       },
-      reversals: { us: reversalsFor, opponent: reversalsAgainst },
+      reversalsAvg: reversalsAvg,
     },
     stall: {
       avgUs:
@@ -665,4 +795,79 @@ function formatPeriodLabel(type: MatchEvent["periodType"], number: number) {
   if (type === "reg") return `Period ${number}`;
   if (type === "ot") return `OT ${number}`;
   return `TB ${number}`;
+}
+
+function ensureRegPeriodAveragePoints(
+  entries: PeriodPointsAverages[],
+): PeriodPointsAverages[] {
+  const baseLabels: Array<{ label: string; order: number }> = [
+    { label: "Period 1", order: 1 },
+    { label: "Period 2", order: 2 },
+    { label: "Period 3", order: 3 },
+  ];
+  const map = new Map(entries.map((entry) => [entry.label, entry]));
+  return baseLabels.map(({ label, order }) => {
+    const entry = map.get(label);
+    if (entry) return entry;
+    return { label, order, us: 0, opponent: 0 };
+  });
+}
+function ensureRegPeriodStall(entries: StallPeriodBreakdown[]) {
+  const baseLabels: Array<{ label: string; order: number }> = [
+    { label: "Period 1", order: 1 },
+    { label: "Period 2", order: 2 },
+    { label: "Period 3", order: 3 },
+  ];
+  const map = new Map(entries.map((entry) => [entry.label, entry]));
+  return baseLabels.map(({ label, order }) => {
+    const entry = map.get(label);
+    if (entry) return entry;
+    return { label, order, us: 0, opponent: 0, matchesLogged: 0 };
+  });
+}
+
+function ensureRegPeriodTakedowns(
+  aggregate: Map<
+    string,
+    { label: string; order: number; us: number; opponent: number; matches: number }
+  >,
+) {
+  const basePeriods: Array<{ key: string; label: string; order: number }> = [
+    { key: "reg-1", label: "Period 1", order: 1 },
+    { key: "reg-2", label: "Period 2", order: 2 },
+    { key: "reg-3", label: "Period 3", order: 3 },
+  ];
+  return basePeriods.map(({ key, label, order }) => {
+    const entry = aggregate.get(key);
+    return {
+      periodLabel: label,
+      periodOrder: order,
+      takedownsFor: entry?.us ?? 0,
+      takedownsAgainst: entry?.opponent ?? 0,
+      attemptsFor: 0,
+      attemptsAgainst: 0,
+      pointsDifferential: 0,
+      matchesLogged: entry?.matches ?? 0,
+    };
+  });
+}
+
+function ensureShotPeriodEntriesTeam(
+  aggregate: Map<string, { label: string; order: number; attempts: number }>,
+  matches: number,
+): ShotAttemptsByPeriod[] {
+  const basePeriods: Array<{ key: string; label: string; order: number }> = [
+    { key: "reg-1", label: "Period 1", order: 1 },
+    { key: "reg-2", label: "Period 2", order: 2 },
+    { key: "reg-3", label: "Period 3", order: 3 },
+  ];
+  return basePeriods.map(({ key, label, order }) => {
+    const entry = aggregate.get(key);
+    return {
+      label,
+      order,
+      attempts:
+        matches > 0 ? (entry?.attempts ?? 0) / matches : 0,
+    };
+  });
 }
