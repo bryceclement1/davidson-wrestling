@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button";
 
 interface Props {
   action: (formData: FormData) => void;
+  submitLabel?: string;
 }
 
-export function AuthForm({ action }: Props) {
+export function AuthForm({ action, submitLabel = "Sign In" }: Props) {
   const { pending } = useFormStatus();
 
   return (
@@ -38,7 +39,7 @@ export function AuthForm({ action }: Props) {
         />
       </div>
       <Button type="submit" fullWidth disabled={pending}>
-        {pending ? "Authenticating..." : "Sign In"}
+        {pending ? "Please wait..." : submitLabel}
       </Button>
     </form>
   );
