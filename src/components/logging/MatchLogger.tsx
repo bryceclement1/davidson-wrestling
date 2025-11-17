@@ -38,15 +38,38 @@ type PromptState =
   | { mode: "nearfall"; scorer: MatchSide }
   | { mode: "stall"; scorer: MatchSide };
 
-const takedownTypes: TakedownType[] = [
-  "single",
-  "double",
-  "high_c",
-  "ankle_pick",
-  "throw",
-  "trip",
-  "other",
+const takedownTypeOptions: Array<{ value: TakedownType; label: string }> = [
+  { value: "double", label: "Double" },
+  { value: "sweep_single", label: "Sweep Single" },
+  { value: "low_single", label: "Low Single" },
+  { value: "high_c", label: "High C" },
+  { value: "throw", label: "Throw" },
+  { value: "trip", label: "Trip" },
+  { value: "ankle_pick", label: "Ankle Pick" },
+  { value: "front_head", label: "Front Head" },
+  { value: "slide_by", label: "Slide By" },
+  { value: "sprawl_go_behind", label: "Sprawl Go Behind" },
+  { value: "other", label: "Other" },
 ];
+
+const shotAttemptOptions: Array<{ value: TakedownType; label: string }> = [
+  { value: "double", label: "Double" },
+  { value: "sweep_single", label: "Sweep Single" },
+  { value: "low_single", label: "Low Single" },
+  { value: "high_c", label: "High C" },
+  { value: "throw", label: "Throw" },
+  { value: "ankle_pick", label: "Ankle Pick" },
+  { value: "slide_by", label: "Slide By" },
+  { value: "other", label: "Other" },
+];
+
+function getTakedownLabel(value: TakedownType) {
+  const option =
+    takedownTypeOptions.find((opt) => opt.value === value) ??
+    shotAttemptOptions.find((opt) => opt.value === value);
+  if (option) return option.label;
+  return value.replace(/_/g, " ");
+}
 
 const nearfallPoints: Array<2 | 3 | 4> = [2, 3, 4];
 const outcomeOptions: Array<{ value: MatchOutcomeType; label: string }> = [
@@ -80,7 +103,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const [lastTakedownType, setLastTakedownType] =
-    useState<TakedownType>("single");
+    useState<TakedownType>("double");
   const [draftResult, setDraftResult] = useState<MatchMeta["result"]>("W");
   const [draftOutcomeType, setDraftOutcomeType] =
     useState<MatchOutcomeType>("decision");
@@ -156,6 +179,11 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
 
     if (actionType === "ride_out") {
       addEvent({ actionType, scorer });
+      return;
+    }
+
+    if (actionType === "escape") {
+      addEvent({ actionType, scorer, points: 1 });
       return;
     }
 
@@ -262,6 +290,10 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
 
   const takedownPrompt = prompt?.mode === "takedown";
   const nearfallPrompt = prompt?.mode === "nearfall";
+  const takedownPromptOptions =
+    prompt?.mode === "takedown" && prompt.actionType === "takedown_attempt"
+      ? shotAttemptOptions
+      : takedownTypeOptions;
 
   return (
     <div className="space-y-6">
@@ -542,18 +574,18 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               Takedown Type
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {takedownTypes.map((type) => (
+              {takedownPromptOptions.map((option) => (
                 <button
-                  key={type}
-                  onClick={() => handlePromptSelect(type)}
-                  className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold capitalize text-[var(--brand-navy)]"
+                  key={option.value}
+                  onClick={() => handlePromptSelect(option.value)}
+                  className="rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--brand-navy)]"
                 >
-                  {type.replace("_", " ")}
+                  {option.label}
                 </button>
               ))}
             </div>
             <p className="mt-4 text-xs text-[var(--neutral-gray)]">
-              Defaulting to {lastTakedownType.toUpperCase()} next time.
+              Defaulting to {getTakedownLabel(lastTakedownType).toUpperCase()} next time.
             </p>
             <div className="mt-4 text-right">
               <button

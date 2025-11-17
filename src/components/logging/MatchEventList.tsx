@@ -8,12 +8,31 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-const labelMap: Record<MatchEvent["actionType"], string> = {
+const labelMap: Partial<Record<MatchEvent["actionType"], string>> = {
   takedown: "Takedown",
   takedown_attempt: "Shot Attempt",
   escape: "Escape",
   reversal: "Reversal",
   nearfall: "Nearfall",
+  riding_time: "Riding Time",
+  stall_call: "Stall Call",
+  caution: "Caution",
+  ride_out: "Ride Out",
+};
+
+const takedownTypeLabels: Record<string, string> = {
+  double: "Double",
+  sweep_single: "Sweep Single",
+  low_single: "Low Single",
+  high_c: "High C",
+  throw: "Throw",
+  trip: "Trip",
+  ankle_pick: "Ankle Pick",
+  front_head: "Front Head",
+  slide_by: "Slide By",
+  sprawl_go_behind: "Sprawl Go Behind",
+  single: "Single",
+  other: "Other",
 };
 
 export function MatchEventList({ events, onRemove }: Props) {
@@ -34,11 +53,17 @@ export function MatchEventList({ events, onRemove }: Props) {
         >
           <div>
             <p className="font-semibold text-[var(--brand-navy)]">
-              {labelMap[event.actionType]} • Period {event.periodNumber}
+              {labelMap[event.actionType] ??
+                event.actionType.replace("_", " ")}{" "}
+              • Period {event.periodNumber}
             </p>
             <p className="text-xs text-[var(--neutral-gray)]">
               {event.scorer === "us" ? "Davidson" : "Opponent"}
-              {event.takedownType && ` · ${event.takedownType}`}
+              {event.takedownType &&
+                ` · ${
+                  takedownTypeLabels[event.takedownType] ??
+                  event.takedownType.replace("_", " ")
+                }`}
               {event.points && ` · ${event.points}pts`}
             </p>
           </div>

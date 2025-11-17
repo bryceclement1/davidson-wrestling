@@ -70,7 +70,20 @@ create table if not exists public.match_events (
   scorer text check (scorer in ('us', 'opponent', 'none')) not null,
   attacker text check (attacker in ('us', 'opponent')),
   takedown_type text check (
-    takedown_type in ('single', 'double', 'high_c', 'ankle_pick', 'throw', 'trip', 'other')
+    takedown_type in (
+      'single',
+      'double',
+      'sweep_single',
+      'low_single',
+      'high_c',
+      'throw',
+      'trip',
+      'ankle_pick',
+      'front_head',
+      'slide_by',
+      'sprawl_go_behind',
+      'other'
+    )
   ),
   points smallint check (points in (0, 1, 2, 3, 4)),
   created_at timestamptz default timezone('utc', now())

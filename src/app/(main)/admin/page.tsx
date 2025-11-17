@@ -16,7 +16,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const matches = await getRecentMatches(5);
+  const matches = await getRecentMatches();
 
   return (
     <div className="space-y-8">

@@ -1,7 +1,69 @@
 import type { MatchEvent } from "@/types/events";
 import type { MatchWithEvents } from "@/types/match";
-import type { TeamPeriodStat, WrestlerSeasonStats } from "@/types/analytics";
+import type {
+  ShotAttemptsByPeriod,
+  StallPeriodBreakdown,
+  TeamPeriodStat,
+  WrestlerPeriodBreakdown,
+  WrestlerSeasonStats,
+} from "@/types/analytics";
 import type { Wrestler } from "@/types/wrestler";
+
+const basePeriodStats: WrestlerPeriodBreakdown[] = [
+  {
+    periodLabel: "Period 1",
+    periodOrder: 1,
+    takedownsFor: 12,
+    takedownsAgainst: 6,
+    attemptsFor: 28,
+    attemptsAgainst: 18,
+    pointsDifferential: 2.4,
+    matchesLogged: 10,
+  },
+  {
+    periodLabel: "Period 2",
+    periodOrder: 2,
+    takedownsFor: 9,
+    takedownsAgainst: 8,
+    attemptsFor: 22,
+    attemptsAgainst: 20,
+    pointsDifferential: 0.8,
+    matchesLogged: 10,
+  },
+  {
+    periodLabel: "Period 3",
+    periodOrder: 3,
+    takedownsFor: 6,
+    takedownsAgainst: 7,
+    attemptsFor: 16,
+    attemptsAgainst: 18,
+    pointsDifferential: -0.4,
+    matchesLogged: 10,
+  },
+  {
+    periodLabel: "OT",
+    periodOrder: 4,
+    takedownsFor: 2,
+    takedownsAgainst: 1,
+    attemptsFor: 4,
+    attemptsAgainst: 3,
+    pointsDifferential: 0.6,
+    matchesLogged: 4,
+  },
+];
+
+const defaultShotAttempts: ShotAttemptsByPeriod[] = [
+  { label: "Period 1", order: 1, attempts: 2.4 },
+  { label: "Period 2", order: 2, attempts: 1.6 },
+  { label: "Period 3", order: 3, attempts: 1.2 },
+];
+
+const defaultStallBreakdown: StallPeriodBreakdown[] = [
+  { label: "Period 1", order: 1, us: 0.6, opponent: 0.4, matchesLogged: 10 },
+  { label: "Period 2", order: 2, us: 0.5, opponent: 0.6, matchesLogged: 10 },
+  { label: "Period 3", order: 3, us: 0.3, opponent: 0.5, matchesLogged: 10 },
+  { label: "OT", order: 4, us: 0.2, opponent: 0.3, matchesLogged: 4 },
+];
 
 export const mockWrestlers: Wrestler[] = [
   {
@@ -101,7 +163,7 @@ export const mockMatches: MatchWithEvents[] = [
         periodNumber: 1,
         scorer: "none",
         attacker: "us",
-        takedownType: "single",
+        takedownType: "sweep_single",
       },
       {
         id: "evt-5",
@@ -134,7 +196,7 @@ export const mockMatches: MatchWithEvents[] = [
         periodType: "reg",
         periodNumber: 1,
         scorer: "us",
-        takedownType: "single",
+        takedownType: "front_head",
       },
       {
         id: "evt-7",
@@ -157,6 +219,7 @@ export const mockTeamPeriodStats: TeamPeriodStat[] = [
     attemptsFor: 88,
     attemptsAgainst: 65,
     pointsDifferential: 3.9,
+    matchesLogged: 20,
   },
   {
     periodLabel: "Period 2",
@@ -166,6 +229,7 @@ export const mockTeamPeriodStats: TeamPeriodStat[] = [
     attemptsFor: 61,
     attemptsAgainst: 59,
     pointsDifferential: 0.4,
+    matchesLogged: 20,
   },
   {
     periodLabel: "Period 3",
@@ -175,6 +239,7 @@ export const mockTeamPeriodStats: TeamPeriodStat[] = [
     attemptsFor: 43,
     attemptsAgainst: 57,
     pointsDifferential: -1.2,
+    matchesLogged: 20,
   },
   {
     periodLabel: "OT",
@@ -184,6 +249,7 @@ export const mockTeamPeriodStats: TeamPeriodStat[] = [
     attemptsFor: 10,
     attemptsAgainst: 7,
     pointsDifferential: 1.6,
+    matchesLogged: 5,
   },
 ];
 
@@ -197,35 +263,65 @@ export const mockWrestlerStats: Record<number, WrestlerSeasonStats> = {
     firstTakedownWinPct: 0.78,
     ridingTimeAdvantagePct: 0.64,
     matches: mockMatches.filter((match) => match.wrestlerId === 1),
-    periods: [
-      {
-        periodLabel: "Period 1",
-        periodOrder: 1,
-        takedownsFor: 18,
-        takedownsAgainst: 9,
-        attemptsFor: 34,
-        attemptsAgainst: 22,
-        pointsDifferential: 2.7,
+    periods: basePeriodStats,
+    overall: {
+      pointsFor: 112,
+      pointsAgainst: 74,
+      escapesFor: 36,
+      escapesAgainst: 22,
+      nearfallPointsFor: 28,
+      nearfallPointsAgainst: 12,
+      decisionWins: 10,
+      majorDecisionWins: 4,
+      techFallWins: 2,
+      fallWins: 2,
+    },
+    outcomePredictors: {
+      firstTakedownWinPct: 0.78,
+      leadingAfterP1WinPct: 0.81,
+      trailingAfterP1WinPct: 0.55,
+      tiedHeadingIntoP3WinPct: 0.7,
+      averagePointsByPeriod: [
+        { label: "Period 1", order: 1, us: 3.4, opponent: 1.8 },
+        { label: "Period 2", order: 2, us: 2.6, opponent: 1.9 },
+        { label: "Period 3", order: 3, us: 2.1, opponent: 1.6 },
+      ],
+    },
+    takedownEfficiency: {
+      ourConversionPct: 0.62,
+      opponentConversionPct: 0.41,
+      ourTakedowns: 62,
+      ourAttempts: 38,
+      mostCommonTakedown: {
+        type: "double",
+        total: 26,
+        avgPerMatch: 1.3,
       },
-      {
-        periodLabel: "Period 2",
-        periodOrder: 2,
-        takedownsFor: 11,
-        takedownsAgainst: 12,
-        attemptsFor: 27,
-        attemptsAgainst: 25,
-        pointsDifferential: 0.8,
+      mostCommonShot: {
+        type: "double",
+        total: 34,
+        avgPerMatch: 1.7,
       },
-      {
-        periodLabel: "Period 3",
-        periodOrder: 3,
-        takedownsFor: 7,
-        takedownsAgainst: 6,
-        attemptsFor: 18,
-        attemptsAgainst: 16,
-        pointsDifferential: 1.1,
-      },
-    ],
+      avgTakedownsInP3: { us: 0.8, opponent: 0.4 },
+      shotAttemptsByPeriod: defaultShotAttempts,
+    },
+    topBottom: {
+      zeroEscapePct: 0.18,
+      rideOutAvg: { us: 0.4, opponent: 0.2 },
+      ridingTimePointPct: { us: 0.55, opponent: 0.25 },
+      reversalsAvg: { us: 0.6, opponent: 0.4 },
+      nearfallAvg: { us: 1.4, opponent: 0.6 },
+    },
+    stall: {
+      avgUs: 0.8,
+      avgOpponent: 1.2,
+      byPeriod: defaultStallBreakdown,
+    },
+    clutch: {
+      overtimeWinPct: 0.67,
+      threePointMarginWinPct: 0.72,
+    },
+    recentMatches: mockMatches.filter((match) => match.wrestlerId === 1),
   },
   2: {
     wrestler: mockWrestlers[1],
@@ -236,34 +332,133 @@ export const mockWrestlerStats: Record<number, WrestlerSeasonStats> = {
     firstTakedownWinPct: 0.68,
     ridingTimeAdvantagePct: 0.47,
     matches: mockMatches.filter((match) => match.wrestlerId === 2),
-    periods: [
-      {
-        periodLabel: "Period 1",
-        periodOrder: 1,
-        takedownsFor: 15,
-        takedownsAgainst: 12,
-        attemptsFor: 33,
-        attemptsAgainst: 30,
-        pointsDifferential: 1.6,
+    periods: basePeriodStats,
+    overall: {
+      pointsFor: 98,
+      pointsAgainst: 77,
+      escapesFor: 30,
+      escapesAgainst: 27,
+      nearfallPointsFor: 18,
+      nearfallPointsAgainst: 16,
+      decisionWins: 9,
+      majorDecisionWins: 3,
+      techFallWins: 2,
+      fallWins: 2,
+    },
+    outcomePredictors: {
+      firstTakedownWinPct: 0.68,
+      leadingAfterP1WinPct: 0.74,
+      trailingAfterP1WinPct: 0.42,
+      tiedHeadingIntoP3WinPct: 0.6,
+      averagePointsByPeriod: [
+        { label: "Period 1", order: 1, us: 3.0, opponent: 2.1 },
+        { label: "Period 2", order: 2, us: 2.2, opponent: 2.0 },
+        { label: "Period 3", order: 3, us: 1.8, opponent: 1.7 },
+      ],
+    },
+    takedownEfficiency: {
+      ourConversionPct: 0.57,
+      opponentConversionPct: 0.44,
+      ourTakedowns: 57,
+      ourAttempts: 43,
+      mostCommonTakedown: {
+        type: "sweep_single",
+        total: 20,
+        avgPerMatch: 1.0,
       },
-      {
-        periodLabel: "Period 2",
-        periodOrder: 2,
-        takedownsFor: 8,
-        takedownsAgainst: 11,
-        attemptsFor: 21,
-        attemptsAgainst: 27,
-        pointsDifferential: -0.4,
+      mostCommonShot: {
+        type: "sweep_single",
+        total: 28,
+        avgPerMatch: 1.4,
       },
-      {
-        periodLabel: "Period 3",
-        periodOrder: 3,
-        takedownsFor: 6,
-        takedownsAgainst: 9,
-        attemptsFor: 19,
-        attemptsAgainst: 22,
-        pointsDifferential: -0.9,
+      avgTakedownsInP3: { us: 0.6, opponent: 0.7 },
+      shotAttemptsByPeriod: defaultShotAttempts,
+    },
+    topBottom: {
+      zeroEscapePct: 0.22,
+      rideOutAvg: { us: 0.3, opponent: 0.35 },
+      ridingTimePointPct: { us: 0.4, opponent: 0.3 },
+      reversalsAvg: { us: 0.4, opponent: 0.5 },
+      nearfallAvg: { us: 0.9, opponent: 0.8 },
+    },
+    stall: {
+      avgUs: 0.9,
+      avgOpponent: 1.0,
+      byPeriod: defaultStallBreakdown,
+    },
+    clutch: {
+      overtimeWinPct: 0.5,
+      threePointMarginWinPct: 0.63,
+    },
+    recentMatches: mockMatches.filter((match) => match.wrestlerId === 2),
+  },
+  3: {
+    wrestler: mockWrestlers[2],
+    record: "20-3",
+    winPercentage: 0.87,
+    totalPointsFor: 134,
+    totalPointsAgainst: 61,
+    firstTakedownWinPct: 0.74,
+    ridingTimeAdvantagePct: 0.7,
+    matches: mockMatches.filter((match) => match.wrestlerId === 3),
+    periods: basePeriodStats,
+    overall: {
+      pointsFor: 134,
+      pointsAgainst: 61,
+      escapesFor: 42,
+      escapesAgainst: 18,
+      nearfallPointsFor: 34,
+      nearfallPointsAgainst: 9,
+      decisionWins: 12,
+      majorDecisionWins: 4,
+      techFallWins: 3,
+      fallWins: 1,
+    },
+    outcomePredictors: {
+      firstTakedownWinPct: 0.74,
+      leadingAfterP1WinPct: 0.86,
+      trailingAfterP1WinPct: 0.58,
+      tiedHeadingIntoP3WinPct: 0.8,
+      averagePointsByPeriod: [
+        { label: "Period 1", order: 1, us: 3.8, opponent: 1.2 },
+        { label: "Period 2", order: 2, us: 3.0, opponent: 1.5 },
+        { label: "Period 3", order: 3, us: 2.4, opponent: 1.1 },
+      ],
+    },
+    takedownEfficiency: {
+      ourConversionPct: 0.68,
+      opponentConversionPct: 0.35,
+      ourTakedowns: 68,
+      ourAttempts: 32,
+      mostCommonTakedown: {
+        type: "front_head",
+        total: 24,
+        avgPerMatch: 1.2,
       },
-    ],
+      mostCommonShot: {
+        type: "high_c",
+        total: 30,
+        avgPerMatch: 1.5,
+      },
+      avgTakedownsInP3: { us: 0.9, opponent: 0.3 },
+      shotAttemptsByPeriod: defaultShotAttempts,
+    },
+    topBottom: {
+      zeroEscapePct: 0.12,
+      rideOutAvg: { us: 0.5, opponent: 0.15 },
+      ridingTimePointPct: { us: 0.66, opponent: 0.2 },
+      reversalsAvg: { us: 0.7, opponent: 0.3 },
+      nearfallAvg: { us: 1.7, opponent: 0.4 },
+    },
+    stall: {
+      avgUs: 0.7,
+      avgOpponent: 0.9,
+      byPeriod: defaultStallBreakdown,
+    },
+    clutch: {
+      overtimeWinPct: 0.75,
+      threePointMarginWinPct: 0.78,
+    },
+    recentMatches: mockMatches.filter((match) => match.wrestlerId === 3),
   },
 };

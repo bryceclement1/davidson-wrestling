@@ -71,6 +71,24 @@ export default async function TeamDashboardPage() {
             helper={`Allowed ${dashboard.overall.nearfallPointsAgainst}`}
           />
         </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Decision Wins"
+            value={dashboard.overall.decisionWins.toString()}
+          />
+          <MetricCard
+            label="Major Decision Wins"
+            value={dashboard.overall.majorDecisionWins.toString()}
+          />
+          <MetricCard
+            label="Tech Fall Wins"
+            value={dashboard.overall.techFallWins.toString()}
+          />
+          <MetricCard
+            label="Fall Wins"
+            value={dashboard.overall.fallWins.toString()}
+          />
+        </div>
       </section>
 
       <section className="space-y-4">

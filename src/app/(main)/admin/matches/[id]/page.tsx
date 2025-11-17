@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { getMatchById } from "@/lib/db/matches";
-import { updateMatchAction } from "../../actions";
+import { deleteMatchAction, updateMatchAction } from "../../actions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -97,6 +97,24 @@ export default async function MatchEditPage({ params }: PageProps) {
               Save Changes
             </button>
           </div>
+        </form>
+      </section>
+
+      <section className="card-surface space-y-3 p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-[var(--danger-red)]">
+          Delete Match
+        </h2>
+        <p className="text-sm text-[var(--neutral-gray)]">
+          Removing a match will permanently delete its events and adjust all analytics.
+        </p>
+        <form action={deleteMatchAction}>
+          <input type="hidden" name="id" value={match.id} />
+          <button
+            type="submit"
+            className="rounded-full border border-[var(--danger-red)] px-5 py-2 text-sm font-semibold text-[var(--danger-red)]"
+          >
+            Delete Match
+          </button>
         </form>
       </section>
 

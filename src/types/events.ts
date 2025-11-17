@@ -16,10 +16,15 @@ export type MatchSide = "us" | "opponent" | "none";
 export type TakedownType =
   | "single"
   | "double"
+  | "sweep_single"
+  | "low_single"
   | "high_c"
-  | "ankle_pick"
   | "throw"
   | "trip"
+  | "ankle_pick"
+  | "front_head"
+  | "slide_by"
+  | "sprawl_go_behind"
   | "other";
 
 export interface MatchEvent {

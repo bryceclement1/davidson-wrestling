@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { assertRole, getAuthenticatedUser } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MatchResult } from "@/types/match";
@@ -39,6 +40,33 @@ export async function updateMatchAction(formData: FormData) {
   if (error) {
     console.error("Failed to update match", error);
     throw new Error("Unable to update match");
+  }
+
+  revalidatePath("/admin");
+  revalidatePath(`/admin/matches/${id}`);
+  redirect("/admin");
+}
+
+export async function deleteMatchAction(formData: FormData) {
+  const user = await getAuthenticatedUser();
+  if (!assertRole(user, "admin")) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase client not available");
+  }
+
+  const id = Number(formData.get("id"));
+  if (!id) {
+    throw new Error("Invalid match id");
+  }
+
+  const { error } = await supabase.from("matches").delete().eq("id", id);
+  if (error) {
+    console.error("Failed to delete match", error);
+    throw new Error("Unable to delete match");
   }
 
   revalidatePath("/admin");

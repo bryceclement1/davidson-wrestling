@@ -9,6 +9,34 @@ export interface WrestlerPeriodBreakdown {
   attemptsFor: number;
   attemptsAgainst: number;
   pointsDifferential: number;
+  matchesLogged: number;
+}
+
+export interface PeriodPointsAverages {
+  label: string;
+  order: number;
+  us: number;
+  opponent: number;
+}
+
+export interface StallPeriodBreakdown {
+  label: string;
+  order: number;
+  us: number;
+  opponent: number;
+  matchesLogged: number;
+}
+
+export interface ShotAttemptsByPeriod {
+  label: string;
+  order: number;
+  attempts: number;
+}
+
+export interface WrestlerTakedownLeader {
+  type: string;
+  total: number;
+  avgPerMatch: number;
 }
 
 export interface WrestlerSeasonStats {
@@ -21,6 +49,52 @@ export interface WrestlerSeasonStats {
   ridingTimeAdvantagePct: number;
   matches: MatchWithEvents[];
   periods: WrestlerPeriodBreakdown[];
+  overall: {
+    pointsFor: number;
+    pointsAgainst: number;
+    escapesFor: number;
+    escapesAgainst: number;
+    nearfallPointsFor: number;
+    nearfallPointsAgainst: number;
+    decisionWins: number;
+    majorDecisionWins: number;
+    techFallWins: number;
+    fallWins: number;
+  };
+  outcomePredictors: {
+    firstTakedownWinPct: number;
+    leadingAfterP1WinPct: number;
+    trailingAfterP1WinPct: number;
+    tiedHeadingIntoP3WinPct: number;
+    averagePointsByPeriod: PeriodPointsAverages[];
+  };
+  takedownEfficiency: {
+    ourConversionPct: number;
+    opponentConversionPct: number;
+    ourTakedowns: number;
+    ourAttempts: number;
+    mostCommonTakedown?: WrestlerTakedownLeader | null;
+    mostCommonShot?: WrestlerTakedownLeader | null;
+    avgTakedownsInP3: { us: number; opponent: number };
+    shotAttemptsByPeriod: ShotAttemptsByPeriod[];
+  };
+  topBottom: {
+    zeroEscapePct: number;
+    rideOutAvg: { us: number; opponent: number };
+    ridingTimePointPct: { us: number; opponent: number };
+    reversalsAvg: { us: number; opponent: number };
+    nearfallAvg: { us: number; opponent: number };
+  };
+  stall: {
+    avgUs: number;
+    avgOpponent: number;
+    byPeriod: StallPeriodBreakdown[];
+  };
+  clutch: {
+    overtimeWinPct: number;
+    threePointMarginWinPct: number;
+  };
+  recentMatches: MatchWithEvents[];
 }
 
 export interface LeaderboardEntry {
@@ -57,6 +131,10 @@ export interface TeamDashboardData {
     escapesAgainst: number;
     nearfallPointsFor: number;
     nearfallPointsAgainst: number;
+    decisionWins: number;
+    majorDecisionWins: number;
+    techFallWins: number;
+    fallWins: number;
   };
   outcomePredictors: {
     firstTakedownWinPct: number;

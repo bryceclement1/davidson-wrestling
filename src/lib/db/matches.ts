@@ -24,22 +24,27 @@ function deriveFirstTakedownFromDbEvents(
   return undefined;
 }
 
-export async function getRecentMatches(limit = 10): Promise<MatchWithEvents[]> {
+export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[]> {
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    return mockMatches.slice(0, limit);
+    return typeof limit === "number" ? mockMatches.slice(0, limit) : mockMatches;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("matches")
     .select("*, match_events(*)")
-    .order("date", { ascending: false })
-    .limit(limit);
+    .order("date", { ascending: false });
+
+  if (typeof limit === "number") {
+    query = query.limit(limit);
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) {
     console.error("Recent matches query failed", error);
-    return mockMatches.slice(0, limit);
+    return typeof limit === "number" ? mockMatches.slice(0, limit) : mockMatches;
   }
 
   return data.map((match) => {
