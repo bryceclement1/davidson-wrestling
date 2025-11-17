@@ -107,6 +107,9 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
   const [draftResult, setDraftResult] = useState<MatchMeta["result"]>("W");
   const [draftOutcomeType, setDraftOutcomeType] =
     useState<MatchOutcomeType>("decision");
+  const [draftOurScore, setDraftOurScore] = useState("");
+  const [draftOpponentScore, setDraftOpponentScore] = useState("");
+  const [scoreSet, setScoreSet] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const defaultWrestlerId = roster[0]?.id ?? 0;
@@ -259,15 +262,31 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
   const openOutcomeModal = () => {
     setDraftResult(matchMeta.result === "L" ? "L" : "W");
     setDraftOutcomeType(matchMeta.outcomeType ?? "decision");
+    setDraftOurScore(
+      scoreSet && matchMeta.ourScore !== undefined
+        ? String(matchMeta.ourScore)
+        : "",
+    );
+    setDraftOpponentScore(
+      scoreSet && matchMeta.opponentScore !== undefined
+        ? String(matchMeta.opponentScore)
+        : "",
+    );
     setIsOutcomeModalOpen(true);
   };
 
   const handleOutcomeSave = () => {
+    const finalOur = Number(draftOurScore || 0);
+    const finalOpp = Number(draftOpponentScore || 0);
+
     setMatchMeta((prev) => ({
       ...prev,
       result: draftResult === "L" ? "L" : "W",
       outcomeType: draftOutcomeType,
+      ourScore: finalOur,
+      opponentScore: finalOpp,
     }));
+    setScoreSet(true);
     setIsOutcomeModalOpen(false);
   };
 
@@ -280,6 +299,12 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         await createMatchLog({ match: matchMeta, events: loggedEvents });
         setStatusMessage("Match saved to Supabase.");
         setLoggedEvents([]);
+        setScoreSet(false);
+        setMatchMeta((prev) => ({
+          ...prev,
+          ourScore: 0,
+          opponentScore: 0,
+        }));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Unable to save match.");
       }
@@ -294,6 +319,19 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
     prompt?.mode === "takedown" && prompt.actionType === "takedown_attempt"
       ? shotAttemptOptions
       : takedownTypeOptions;
+
+  const liveScore = loggedEvents.reduce(
+    (totals, event) => {
+      const points =
+        typeof event.points === "number"
+          ? event.points
+          : EVENT_POINT_DEFAULTS[event.actionType] ?? 0;
+      if (event.scorer === "us") totals.us += points;
+      if (event.scorer === "opponent") totals.opponent += points;
+      return totals;
+    },
+    { us: 0, opponent: 0 },
+  );
 
   return (
     <div className="space-y-6">
@@ -380,28 +418,6 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            Our Score
-            <Input
-              type="number"
-              className="mt-1"
-              value={matchMeta.ourScore}
-              onChange={(event) =>
-                handleMetaChange("ourScore", Number(event.target.value))
-              }
-            />
-          </label>
-          <label className="text-sm font-semibold text-[var(--brand-navy)]">
-            Opponent Score
-            <Input
-              type="number"
-              className="mt-1"
-              value={matchMeta.opponentScore}
-              onChange={(event) =>
-                handleMetaChange("opponentScore", Number(event.target.value))
-              }
-            />
-          </label>
-          <label className="text-sm font-semibold text-[var(--brand-navy)]">
             Weight Class
             <Select
               className="mt-1"
@@ -435,6 +451,18 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
 
       <MatchEventList events={loggedEvents} onRemove={removeEvent} />
 
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm">
+        <p className="text-xs uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+          Current Score (from logged events)
+        </p>
+        <p className="mt-2 text-3xl font-semibold text-[var(--brand-navy)]">
+          Davidson {liveScore.us} - Opponent {liveScore.opponent}
+        </p>
+        <p className="text-sm text-[var(--neutral-gray)]">
+          Final score is set when you save the match outcome.
+        </p>
+      </div>
+
       <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
@@ -446,6 +474,12 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
           <p className="text-sm text-[var(--neutral-gray)]">
             {formatOutcomeLabel(matchMeta.outcomeType)}
           </p>
+          {scoreSet && (
+            <p className="text-sm text-[var(--neutral-gray)]">
+              Final Score: Davidson {matchMeta.ourScore ?? 0} - Opponent{" "}
+              {matchMeta.opponentScore ?? 0}
+            </p>
+          )}
         </div>
         <Button type="button" variant="primary" onClick={openOutcomeModal}>
           Match Outcome
@@ -469,6 +503,12 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
             onClick={() => {
               setLoggedEvents([]);
               setStatusMessage(null);
+              setScoreSet(false);
+              setMatchMeta((prev) => ({
+                ...prev,
+                ourScore: 0,
+                opponentScore: 0,
+              }));
             }}
           >
             Clear Session
@@ -476,7 +516,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
           <Button
             variant="primary"
             onClick={() => setIsConfirmOpen(true)}
-            disabled={!loggedEvents.length}
+            disabled={!loggedEvents.length || !scoreSet}
           >
             Save Match / Finalize
           </Button>
@@ -540,6 +580,26 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
                   {option.label}
                 </button>
               ))}
+            </div>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-[var(--brand-navy)]">
+              Davidson Score
+              <Input
+                type="number"
+                className="mt-1"
+                value={draftOurScore}
+                onChange={(event) => setDraftOurScore(event.target.value)}
+              />
+            </label>
+              <label className="text-sm font-semibold text-[var(--brand-navy)]">
+            Opponent Score
+            <Input
+              type="number"
+              className="mt-1"
+              value={draftOpponentScore}
+              onChange={(event) => setDraftOpponentScore(event.target.value)}
+            />
+          </label>
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button
@@ -674,3 +734,14 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
     </div>
   );
 }
+const EVENT_POINT_DEFAULTS: Partial<Record<MatchEvent["actionType"], number>> = {
+  takedown: 3,
+  takedown_attempt: 0,
+  escape: 1,
+  reversal: 2,
+  nearfall: 2,
+  riding_time: 1,
+  stall_call: 0,
+  caution: 0,
+  ride_out: 0,
+};

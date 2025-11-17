@@ -118,6 +118,7 @@ export interface StallPeriodBreakdown {
   order: number;
   us: number;
   opponent: number;
+  matchesLogged: number;
 }
 
 export interface TeamDashboardData {
@@ -146,14 +147,19 @@ export interface TeamDashboardData {
   takedownEfficiency: {
     ourConversionPct: number;
     opponentConversionPct: number;
+    ourTakedowns: number;
+    opponentTakedowns: number;
     ourAttempts: number;
     opponentAttempts: number;
+    avgTakedownsInP3: { us: number; opponent: number };
+    avgTakedownsByPeriod: TeamPeriodStat[];
+    shotAttemptsByPeriod: ShotAttemptsByPeriod[];
   };
   topBottom: {
     zeroEscapePct: number;
-    rideOuts: { us: number; opponent: number };
+    rideOutAvg: { us: number; opponent: number };
     ridingTimePointPct: { us: number; opponent: number };
-    reversals: { us: number; opponent: number };
+    reversalsAvg: { us: number; opponent: number };
   };
   stall: {
     avgUs: number;

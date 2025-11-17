@@ -1,6 +1,8 @@
 import { getTeamDashboardData } from "@/lib/analytics/teamQueries";
 import { LeaderboardTable } from "@/components/dashboard/LeaderboardTable";
 import { RecentMatchesTable } from "@/components/dashboard/RecentMatchesTable";
+import { PeriodBreakdownChart } from "@/components/dashboard/PeriodBreakdownChart";
+import { Card, CardHeader, CardBody } from "@/components/ui/Card";
 
 const formatPercent = (value: number) => `${Math.round(value * 100)}%`;
 
@@ -28,6 +30,12 @@ function MetricCard({ label, value, helper }: MetricCardProps) {
 
 export default async function TeamDashboardPage() {
   const dashboard = await getTeamDashboardData();
+  const ourTotalAttempts =
+    (dashboard.takedownEfficiency.ourTakedowns ?? 0) +
+    (dashboard.takedownEfficiency.ourAttempts ?? 0);
+  const opponentTotalAttempts =
+    (dashboard.takedownEfficiency.opponentTakedowns ?? 0) +
+    (dashboard.takedownEfficiency.opponentAttempts ?? 0);
 
   return (
     <div className="space-y-8">
@@ -114,6 +122,11 @@ export default async function TeamDashboardPage() {
           />
         </div>
         <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-white">
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+              Average Points by Period
+            </p>
+          </div>
           <table className="min-w-full divide-y divide-[var(--border)] text-sm">
             <thead className="bg-[var(--muted)]">
               <tr>
@@ -129,17 +142,19 @@ export default async function TeamDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)] bg-white">
-              {dashboard.outcomePredictors.averagePointsByPeriod.map((period) => (
-                <tr key={period.label}>
-                  <td className="px-4 py-2">{period.label}</td>
-                  <td className="px-4 py-2">
-                    {period.us.toFixed(1)}
-                  </td>
-                  <td className="px-4 py-2">
-                    {period.opponent.toFixed(1)}
-                  </td>
-                </tr>
-              ))}
+              {dashboard.outcomePredictors.averagePointsByPeriod
+                .filter((period) => period.label.startsWith("Period"))
+                .map((period) => (
+                  <tr key={period.label}>
+                    <td className="px-4 py-2">{period.label}</td>
+                    <td className="px-4 py-2">
+                      {period.us.toFixed(1)}
+                    </td>
+                    <td className="px-4 py-2">
+                      {period.opponent.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
@@ -149,17 +164,81 @@ export default async function TeamDashboardPage() {
         <h3 className="text-lg font-semibold text-[var(--brand-navy)]">
           Takedown Efficiency
         </h3>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <MetricCard
             label="Our Conversion %"
             value={formatPercent(dashboard.takedownEfficiency.ourConversionPct)}
-            helper={`${dashboard.takedownEfficiency.ourAttempts} attempts`}
+            helper={`Takedowns: ${dashboard.takedownEfficiency.ourTakedowns ?? 0} / ${ourTotalAttempts}`}
           />
           <MetricCard
             label="Opponent Conversion %"
             value={formatPercent(dashboard.takedownEfficiency.opponentConversionPct)}
-            helper={`${dashboard.takedownEfficiency.opponentAttempts} attempts`}
+            helper={`Takedowns: ${dashboard.takedownEfficiency.opponentTakedowns ?? 0} / ${opponentTotalAttempts}`}
           />
+          <MetricCard
+            label="Avg P3 Takedowns"
+            value={dashboard.takedownEfficiency.avgTakedownsInP3.us.toFixed(2)}
+            helper={`Allowed ${dashboard.takedownEfficiency.avgTakedownsInP3.opponent.toFixed(2)}`}
+          />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader
+              title="Average Takedowns by Period"
+              description="Per-match takedown pace"
+            />
+            <CardBody>
+              {dashboard.takedownEfficiency.avgTakedownsByPeriod.length ? (
+                <PeriodBreakdownChart
+                  data={dashboard.takedownEfficiency.avgTakedownsByPeriod}
+                />
+              ) : (
+                <p className="text-sm text-[var(--neutral-gray)]">
+                  Not enough data to build period breakdown.
+                </p>
+              )}
+            </CardBody>
+          </Card>
+          <Card>
+            <CardHeader
+              title="Shot Attempts by Period"
+              description="Average attempts per match"
+            />
+            <CardBody>
+              {dashboard.takedownEfficiency.shotAttemptsByPeriod.length ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-[var(--border)] text-sm">
+                    <thead className="bg-[var(--muted)]">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
+                          Period
+                        </th>
+                        <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
+                          Attempts
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border)] bg-white">
+                      {dashboard.takedownEfficiency.shotAttemptsByPeriod
+                        .sort((a, b) => a.order - b.order)
+                        .map((period) => (
+                          <tr key={period.label}>
+                            <td className="px-4 py-2">{period.label}</td>
+                            <td className="px-4 py-2">
+                              {period.attempts.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--neutral-gray)]">
+                  No shot attempts recorded yet.
+                </p>
+              )}
+            </CardBody>
+          </Card>
         </div>
       </section>
 
@@ -173,9 +252,9 @@ export default async function TeamDashboardPage() {
             value={formatPercent(dashboard.topBottom.zeroEscapePct)}
           />
           <MetricCard
-            label="Ride Outs"
-            value={`${dashboard.topBottom.rideOuts.us} - ${dashboard.topBottom.rideOuts.opponent}`}
-            helper="Ours vs Opponent"
+            label="Avg Ride Outs per Match"
+            value={dashboard.topBottom.rideOutAvg.us.toFixed(2)}
+            helper={`Opponent ${dashboard.topBottom.rideOutAvg.opponent.toFixed(2)}`}
           />
           <MetricCard
             label="Riding Time Point %"
@@ -183,9 +262,9 @@ export default async function TeamDashboardPage() {
             helper={`Opponent ${formatPercent(dashboard.topBottom.ridingTimePointPct.opponent)}`}
           />
           <MetricCard
-            label="Reversals"
-            value={`${dashboard.topBottom.reversals.us} - ${dashboard.topBottom.reversals.opponent}`}
-            helper="Created vs Allowed"
+            label="Avg Reversals per Match"
+            value={dashboard.topBottom.reversalsAvg.us.toFixed(2)}
+            helper={`Allowed ${dashboard.topBottom.reversalsAvg.opponent.toFixed(2)}`}
           />
         </div>
       </section>
@@ -205,6 +284,11 @@ export default async function TeamDashboardPage() {
           />
         </div>
         <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-white">
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--neutral-gray)]">
+              Average Stall Calls by Period
+            </p>
+          </div>
           <table className="min-w-full divide-y divide-[var(--border)] text-sm">
             <thead className="bg-[var(--muted)]">
               <tr>
@@ -220,13 +304,15 @@ export default async function TeamDashboardPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)] bg-white">
-              {dashboard.stall.byPeriod.map((period) => (
-                <tr key={period.label}>
-                  <td className="px-4 py-2">{period.label}</td>
-                  <td className="px-4 py-2">{period.us}</td>
-                  <td className="px-4 py-2">{period.opponent}</td>
-                </tr>
-              ))}
+              {dashboard.stall.byPeriod
+                .filter((period) => period.label.startsWith("Period"))
+                .map((period) => (
+                  <tr key={period.label}>
+                    <td className="px-4 py-2">{period.label}</td>
+                    <td className="px-4 py-2">{period.us.toFixed(2)}</td>
+                    <td className="px-4 py-2">{period.opponent.toFixed(2)}</td>
+                  </tr>
+                ))}
             </tbody>
           </table>
         </div>
