@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { getAuthenticatedUser } from "@/lib/auth/roles";
 
 type Props = {
@@ -27,14 +28,7 @@ export default async function MainLayout({ children }: Props) {
               Davidson Wrestling Analytics
             </h1>
           </div>
-          <div className="flex items-center gap-4 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-sm text-[var(--neutral-gray)] shadow-sm">
-            <span className="font-semibold text-[var(--brand-navy)]">
-              {user?.name ?? "Mat Logger"}
-            </span>
-            <span className="rounded-full bg-[var(--brand-navy)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--brand-navy)]">
-              {user?.role === "admin" ? "Admin" : "Standard"}
-            </span>
-          </div>
+          <UserMenu user={user} />
         </div>
         {children}
       </main>
