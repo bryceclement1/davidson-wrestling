@@ -229,13 +229,16 @@ function analyzeMatch(match: MatchWithEvents): MatchAnalysis {
     if (event.actionType === "stall_call") {
       if (event.scorer === "us") stallCalls.us += 1;
       if (event.scorer === "opponent") stallCalls.opponent += 1;
-      const stallEntry =
-        stallByPeriod.get(key) ?? {
+      let stallEntry = stallByPeriod.get(key);
+      if (!stallEntry) {
+        stallEntry = {
           label,
           order,
           us: 0,
           opponent: 0,
+          matchesLogged: 1,
         };
+      }
       if (event.scorer === "us") {
         stallEntry.us += 1;
       } else if (event.scorer === "opponent") {
@@ -324,6 +327,10 @@ function buildTeamDashboardData(
 
   let stallCallsFor = 0;
   let stallCallsAgainst = 0;
+  let decisionWins = 0;
+  let majorDecisionWins = 0;
+  let techFallWins = 0;
+  let fallWins = 0;
 
   const stallByPeriodAggregate = new Map<string, StallPeriodBreakdown>();
   const pointsByPeriodAggregate = new Map<
@@ -358,6 +365,24 @@ function buildTeamDashboardData(
 
     pointsFor += match.ourScore ?? 0;
     pointsAgainst += match.opponentScore ?? 0;
+
+    if (isWin) {
+      const outcomeType = match.outcomeType ?? "decision";
+      switch (outcomeType) {
+        case "major_decision":
+          majorDecisionWins += 1;
+          break;
+        case "tech_fall":
+          techFallWins += 1;
+          break;
+        case "fall":
+          fallWins += 1;
+          break;
+        case "decision":
+        default:
+          decisionWins += 1;
+      }
+    }
 
     const analysis = analyzeMatch(match);
 
@@ -446,9 +471,11 @@ function buildTeamDashboardData(
           order: entry.order,
           us: 0,
           opponent: 0,
+          matchesLogged: 0,
         };
       aggregate.us += entry.us;
       aggregate.opponent += entry.opponent;
+      aggregate.matchesLogged += entry.matchesLogged;
       stallByPeriodAggregate.set(key, aggregate);
     });
 
@@ -527,6 +554,10 @@ function buildTeamDashboardData(
       escapesAgainst,
       nearfallPointsFor: nearfallFor,
       nearfallPointsAgainst: nearfallAgainst,
+      decisionWins,
+      majorDecisionWins,
+      techFallWins,
+      fallWins,
     },
     outcomePredictors: {
       firstTakedownWinPct:
