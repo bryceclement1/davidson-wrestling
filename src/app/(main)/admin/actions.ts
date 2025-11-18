@@ -29,12 +29,13 @@ export async function updateMatchAction(formData: FormData) {
 
   const { error } = await supabase
     .from("matches")
+    // Cast to the generated Database Update type to satisfy Supabase's generics.
     .update({
       opponent_name: opponentName || null,
       our_score: Number.isNaN(ourScore) ? 0 : ourScore,
       opponent_score: Number.isNaN(opponentScore) ? 0 : opponentScore,
       result,
-    })
+    } as any)
     .eq("id", id);
 
   if (error) {
