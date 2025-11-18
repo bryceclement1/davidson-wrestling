@@ -47,6 +47,35 @@ export async function updateMatchAction(formData: FormData) {
   redirect("/admin");
 }
 
+export async function promoteUserToAdminAction(formData: FormData) {
+  const currentUser = await getAuthenticatedUser();
+  if (!assertRole(currentUser, "admin")) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) {
+    throw new Error("Supabase client not available");
+  }
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) {
+    throw new Error("Invalid user id");
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ role: "admin" })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to promote user", error);
+    throw new Error("Unable to promote user");
+  }
+
+  revalidatePath("/admin");
+}
+
 export async function deleteMatchAction(formData: FormData) {
   const user = await getAuthenticatedUser();
   if (!assertRole(user, "admin")) {

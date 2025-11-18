@@ -24,6 +24,11 @@ function deriveFirstTakedownFromDbEvents(
   return undefined;
 }
 
+type MatchRowWithWrestler = Database["public"]["Tables"]["matches"]["Row"] & {
+  match_events?: Database["public"]["Tables"]["match_events"]["Row"][] | null;
+  wrestlers?: { name?: string | null } | null;
+};
+
 export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[]> {
   const supabase = await createSupabaseServerClient();
 
@@ -33,7 +38,7 @@ export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[
 
   let query = supabase
     .from("matches")
-    .select("*, match_events(*)")
+    .select("*, match_events(*), wrestlers(name)")
     .order("date", { ascending: false });
 
   if (typeof limit === "number") {
@@ -47,7 +52,7 @@ export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[
     return typeof limit === "number" ? mockMatches.slice(0, limit) : mockMatches;
   }
 
-  return data.map((match) => {
+  return (data as MatchRowWithWrestler[]).map((match) => {
     const eventRows = match.match_events ?? [];
     const events =
       eventRows.map((evt) => ({
@@ -67,6 +72,7 @@ export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[
     return {
       id: match.id,
       wrestlerId: match.wrestler_id,
+      wrestlerName: match.wrestlers?.name ?? undefined,
       eventId: match.event_id ?? undefined,
       opponentName: match.opponent_name,
       opponentSchool: match.opponent_school ?? undefined,

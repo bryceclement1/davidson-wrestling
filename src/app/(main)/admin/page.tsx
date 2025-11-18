@@ -4,11 +4,8 @@ import { getAuthenticatedUser } from "@/lib/auth/roles";
 import { getRecentMatches } from "@/lib/db/matches";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/lib/utils";
-
-const mockUsers = [
-  { id: "user-101", name: "New Wrestler", email: "rookie@davidson.edu" },
-  { id: "user-102", name: "Analytics GA", email: "ga@davidson.edu" },
-];
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { promoteUserToAdminAction } from "./actions";
 
 export default async function AdminPage() {
   const user = await getAuthenticatedUser();
@@ -17,6 +14,16 @@ export default async function AdminPage() {
   }
 
   const matches = await getRecentMatches();
+
+  const supabase = await createSupabaseServerClient();
+  const { data: appUsers } =
+    (supabase &&
+      (await supabase
+        .from("users")
+        .select("id,email,name,role")
+        .order("created_at", { ascending: true }))) ||
+    { data: null };
+  const users = appUsers ?? [];
 
   return (
     <div className="space-y-8">
@@ -38,7 +45,6 @@ export default async function AdminPage() {
               Pull a match to correct scores or events.
             </p>
           </div>
-          <Button variant="secondary">Open SQL Editor</Button>
         </div>
         <div className="overflow-x-auto rounded-2xl border border-[var(--border)]">
           <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -88,32 +94,39 @@ export default async function AdminPage() {
           User Management
         </p>
         <p className="text-sm text-[var(--neutral-gray)]">
-          Promote new users to Admin or link them to roster entries.
+          Promote new users to Admin.
         </p>
         <div className="mt-4 space-y-3">
-          {mockUsers.map((pending) => (
-            <div
-              key={pending.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
-            >
-              <div>
-                <p className="text-sm font-semibold text-[var(--brand-navy)]">
-                  {pending.name}
-                </p>
-                <p className="text-xs text-[var(--neutral-gray)]">
-                  {pending.email}
-                </p>
+          {users.length ? (
+            users.map((appUser) => (
+              <div
+                key={appUser.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white px-4 py-3"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-[var(--brand-navy)]">
+                    {appUser.name ?? "Unnamed User"}
+                    {appUser.role === "admin" ? " (Admin)" : ""}
+                  </p>
+                  <p className="text-xs text-[var(--neutral-gray)]">
+                    {appUser.email}
+                  </p>
+                </div>
+                {appUser.role !== "admin" && (
+                  <form action={promoteUserToAdminAction}>
+                    <input type="hidden" name="id" value={appUser.id} />
+                    <Button variant="primary" size="sm">
+                      Promote to Admin
+                    </Button>
+                  </form>
+                )}
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Link Wrestler
-                </Button>
-                <Button variant="primary" size="sm">
-                  Promote to Admin
-                </Button>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-[var(--neutral-gray)]">
+              No users found yet. New signups will appear here.
+            </p>
+          )}
         </div>
       </section>
     </div>
