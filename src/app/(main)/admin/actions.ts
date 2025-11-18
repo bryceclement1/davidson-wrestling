@@ -64,13 +64,11 @@ export async function promoteUserToAdminAction(formData: FormData) {
     throw new Error("Invalid user id");
   }
 
-  const updatePayload: Database["public"]["Tables"]["users"]["Update"] = {
-    role: "admin",
-  };
-
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("users")
-    .update(updatePayload)
+    .update<Database["public"]["Tables"]["users"]["Update"]>({
+      role: "admin",
+    })
     .eq("id", id);
 
   if (error) {
