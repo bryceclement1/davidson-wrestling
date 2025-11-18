@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertRole, getAuthenticatedUser } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
 import type { MatchResult } from "@/types/match";
 
 export async function updateMatchAction(formData: FormData) {
@@ -28,9 +27,9 @@ export async function updateMatchAction(formData: FormData) {
   const opponentScore = Number(formData.get("opponentScore"));
   const result = (formData.get("result") ?? "W") as MatchResult;
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("matches")
-    .update<Database["public"]["Tables"]["matches"]["Update"]>({
+    .update({
       opponent_name: opponentName || null,
       our_score: Number.isNaN(ourScore) ? 0 : ourScore,
       opponent_score: Number.isNaN(opponentScore) ? 0 : opponentScore,
