@@ -54,7 +54,7 @@ export async function signUpAction(
     };
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -64,6 +64,22 @@ export async function signUpAction(
 
   if (error) {
     return { status: "error", message: error.message };
+  }
+
+  const authUser = data.user;
+  if (authUser) {
+    await supabase.from("users").upsert(
+      {
+        id: authUser.id,
+        email: authUser.email ?? email,
+        name:
+          authUser.user_metadata?.full_name ??
+          authUser.user_metadata?.name ??
+          "",
+        role: "standard",
+      },
+      { onConflict: "id" },
+    );
   }
 
   return {
