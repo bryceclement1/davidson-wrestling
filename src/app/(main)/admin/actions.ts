@@ -65,7 +65,7 @@ export async function promoteUserToAdminAction(formData: FormData) {
 
   const { error } = await supabase
     .from("users")
-    .update({ role: "admin" })
+    .update({ role: "admin" } as Database["public"]["Tables"]["users"]["Update"])
     .eq("id", id);
 
   if (error) {
