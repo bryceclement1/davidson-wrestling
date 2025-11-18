@@ -7,7 +7,7 @@ import type {
   TeamDashboardData,
 } from "@/types/analytics";
 import type { MatchEvent } from "@/types/events";
-import type { MatchWithEvents } from "@/types/match";
+import type { MatchOutcomeType, MatchResult, MatchWithEvents } from "@/types/match";
 import type { Database } from "@/types/database";
 import { mockMatches } from "./mockData";
 
@@ -30,6 +30,15 @@ const ACTION_POINT_DEFAULTS: Partial<Record<MatchEvent["actionType"], number>> =
   stall_call: 0,
   caution: 0,
   ride_out: 0,
+};
+
+const DUAL_OUTCOME_POINTS: Record<MatchOutcomeType, number> = {
+  decision: 3,
+  major_decision: 4,
+  tech_fall: 5,
+  fall: 6,
+  forfeit: 6,
+  injury: 6,
 };
 
 export async function getTeamDashboardData(): Promise<TeamDashboardData> {
@@ -98,6 +107,7 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
     opponentSchool: row.opponent_school ?? undefined,
     weightClass: row.weight_class ?? undefined,
     seasonId: row.season_id ?? undefined,
+    eventId: row.event_id ?? undefined,
     matchType: row.match_type,
     eventName: row.event_name ?? undefined,
     outcomeType: row.outcome_type ?? undefined,
@@ -356,6 +366,9 @@ function buildTeamDashboardData(
   let wins = 0;
   let losses = 0;
   let draws = 0;
+  let dualMeetWins = 0;
+  let dualMeetLosses = 0;
+  let totalMatchWins = 0;
 
   let pointsFor = 0;
   let pointsAgainst = 0;
@@ -396,6 +409,7 @@ function buildTeamDashboardData(
     string,
     { label: string; order: number; attempts: number }
   >();
+  const dualEventTotals = new Map<number, { our: number; opponent: number }>();
 
   const stallByPeriodAggregate = new Map<
     string,
@@ -430,6 +444,20 @@ function buildTeamDashboardData(
     if (isWin) wins += 1;
     else if (isLoss) losses += 1;
     else draws += 1;
+    if (isWin) totalMatchWins += 1;
+    if (match.matchType === "dual" && typeof match.eventId === "number") {
+      const eventPoints = dualEventTotals.get(match.eventId) ?? {
+        our: 0,
+        opponent: 0,
+      };
+      const { our, opponent } = getDualTeamPoints(
+        match.result,
+        match.outcomeType,
+      );
+      eventPoints.our += our;
+      eventPoints.opponent += opponent;
+      dualEventTotals.set(match.eventId, eventPoints);
+    }
 
     pointsFor += match.ourScore ?? 0;
     pointsAgainst += match.opponentScore ?? 0;
@@ -600,6 +628,11 @@ function buildTeamDashboardData(
   const matchesLogged = matches.length;
   const record =
     draws > 0 ? `${wins}-${losses}-${draws}` : `${wins}-${losses}`;
+  dualEventTotals.forEach(({ our, opponent }) => {
+    if (our > opponent) dualMeetWins += 1;
+    else if (our < opponent) dualMeetLosses += 1;
+  });
+
   const rideOutAvg = {
     us: matchesLogged > 0 ? rideOutsFor / matchesLogged : 0,
     opponent: matchesLogged > 0 ? rideOutsAgainst / matchesLogged : 0,
@@ -670,6 +703,9 @@ function buildTeamDashboardData(
     matchesLogged,
     overall: {
       record,
+      dualRecord: `${dualMeetWins}-${dualMeetLosses}`,
+      totalWins: totalMatchWins,
+      totalTakedowns: takedownsFor,
       pointsFor,
       pointsAgainst,
       escapesFor,
@@ -795,6 +831,20 @@ function formatPeriodLabel(type: MatchEvent["periodType"], number: number) {
   if (type === "reg") return `Period ${number}`;
   if (type === "ot") return `OT ${number}`;
   return `TB ${number}`;
+}
+
+function getDualTeamPoints(
+  result: MatchResult,
+  outcomeType?: MatchOutcomeType | null,
+) {
+  const points = DUAL_OUTCOME_POINTS[outcomeType ?? "decision"] ?? 3;
+  if (result === "W" || result === "FF") {
+    return { our: points, opponent: 0 };
+  }
+  if (result === "L") {
+    return { our: 0, opponent: points };
+  }
+  return { our: 0, opponent: 0 };
 }
 
 function ensureRegPeriodAveragePoints(

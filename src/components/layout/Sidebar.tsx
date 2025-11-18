@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import type { AppUser } from "@/types/user";
 import { clsx } from "clsx";
 import {
-  Activity,
   BarChart3,
   CalendarDays,
   LogIn,
@@ -21,12 +20,6 @@ const navItems = [
     href: "/",
     label: "Team Dashboard",
     icon: BarChart3,
-    roles: ["admin", "standard"],
-  },
-  {
-    href: "/team",
-    label: "Season Trends",
-    icon: Activity,
     roles: ["admin", "standard"],
   },
   {
