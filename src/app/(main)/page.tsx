@@ -59,24 +59,24 @@ export default async function TeamDashboardPage() {
         </h3>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <MetricCard
-            label="Record"
-            value={dashboard.overall.record}
-            helper="Dual + tournament results"
+            label="Dual Meet Record"
+            value={dashboard.overall.dualRecord}
+            helper="Dual meets only"
           />
           <MetricCard
-            label="Points Scored"
+            label="Matches Won"
+            value={dashboard.overall.totalWins.toString()}
+            helper={`Out of ${dashboard.matchesLogged} matches`}
+          />
+          <MetricCard
+            label="Total Takedowns"
+            value={dashboard.overall.totalTakedowns.toString()}
+            helper={`Allowed ${dashboard.takedownEfficiency.opponentTakedowns ?? 0}`}
+          />
+          <MetricCard
+            label="Total Points Scored"
             value={dashboard.overall.pointsFor.toString()}
             helper={`Allowed ${dashboard.overall.pointsAgainst}`}
-          />
-          <MetricCard
-            label="Escapes"
-            value={dashboard.overall.escapesFor.toString()}
-            helper={`Allowed ${dashboard.overall.escapesAgainst}`}
-          />
-          <MetricCard
-            label="Nearfall Points"
-            value={dashboard.overall.nearfallPointsFor.toString()}
-            helper={`Allowed ${dashboard.overall.nearfallPointsAgainst}`}
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

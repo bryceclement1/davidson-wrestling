@@ -495,20 +495,17 @@ export default async function WrestlerDetailPage({ params }: Props) {
                       <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
                         Event
                       </th>
-                      <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
-                        Opponent
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
-                        Result
-                      </th>
-                      <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
-                        First TD
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)] bg-white">
-                    {displayStats.recentMatches.map((match) => (
-                      <tr key={match.id}>
+                  <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
+                    Opponent
+                  </th>
+                  <th className="px-4 py-2 text-left font-semibold text-[var(--neutral-gray)]">
+                    Result
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)] bg-white">
+                {displayStats.recentMatches.map((match) => (
+                  <tr key={match.id}>
                         <td className="px-4 py-2">{formatDate(match.date)}</td>
                         <td className="px-4 py-2">
                           {match.eventName ??
@@ -526,15 +523,12 @@ export default async function WrestlerDetailPage({ params }: Props) {
                                   ? "text-[var(--danger-red)]"
                                   : "text-[var(--brand-navy)]"
                             }
-                          >
-                            {match.result} {match.ourScore}-{match.opponentScore}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 capitalize">
-                          {match.firstTakedownScorer ?? "—"}
-                        </td>
-                      </tr>
-                    ))}
+                      >
+                        {match.result} {match.ourScore}-{match.opponentScore}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
                   </tbody>
                 </table>
               </div>

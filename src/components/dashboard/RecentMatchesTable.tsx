@@ -29,9 +29,6 @@ export function RecentMatchesTable({ matches }: Props) {
               <th className="px-5 py-3 text-left font-semibold text-[var(--neutral-gray)]">
                 Result
               </th>
-              <th className="px-5 py-3 text-left font-semibold text-[var(--neutral-gray)]">
-                First TD
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)] bg-white">
@@ -54,13 +51,6 @@ export function RecentMatchesTable({ matches }: Props) {
                   >
                     {match.result} {match.ourScore}-{match.opponentScore}
                   </span>
-                </td>
-                <td className="px-5 py-3">
-                  {match.firstTakedownScorer === "us"
-                    ? "Davidson"
-                    : match.firstTakedownScorer === "opponent"
-                      ? "Opponent"
-                      : "—"}
                 </td>
               </tr>
             ))}

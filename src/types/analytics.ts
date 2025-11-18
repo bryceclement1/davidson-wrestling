@@ -126,6 +126,9 @@ export interface TeamDashboardData {
   matchesLogged: number;
   overall: {
     record: string;
+    dualRecord: string;
+    totalWins: number;
+    totalTakedowns: number;
     pointsFor: number;
     pointsAgainst: number;
     escapesFor: number;
