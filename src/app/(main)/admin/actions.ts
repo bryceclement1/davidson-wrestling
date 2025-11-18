@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertRole, getAuthenticatedUser } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { MatchResult } from "@/types/match";
 import type { Database } from "@/types/database";
+import type { MatchResult } from "@/types/match";
 
 export async function updateMatchAction(formData: FormData) {
   const user = await getAuthenticatedUser();
@@ -13,7 +13,7 @@ export async function updateMatchAction(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const supabase = await createSupabaseServerClient();
+ const supabase = await createSupabaseServerClient();
   if (!supabase) {
     throw new Error("Supabase client not available");
   }
@@ -28,9 +28,9 @@ export async function updateMatchAction(formData: FormData) {
   const opponentScore = Number(formData.get("opponentScore"));
   const result = (formData.get("result") ?? "W") as MatchResult;
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("matches")
-    .update({
+    .update<Database["public"]["Tables"]["matches"]["Update"]>({
       opponent_name: opponentName || null,
       our_score: Number.isNaN(ourScore) ? 0 : ourScore,
       opponent_score: Number.isNaN(opponentScore) ? 0 : opponentScore,
@@ -64,7 +64,7 @@ export async function promoteUserToAdminAction(formData: FormData) {
     throw new Error("Invalid user id");
   }
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from("users")
     .update<Database["public"]["Tables"]["users"]["Update"]>({
       role: "admin",

@@ -10,7 +10,6 @@ import {
   type DualEventSummary,
 } from "@/lib/db/matches";
 import type { MatchOutcomeType } from "@/types/match";
-import { clsx } from "clsx";
 
 export default async function EventsPage() {
   const events = await listEvents();

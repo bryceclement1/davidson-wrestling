@@ -80,10 +80,7 @@ export async function signUpAction(
       wrestler_id: null,
     };
 
-    await supabase
-      .from("users")
-      // Cast to `any` to satisfy Supabase's generic upsert typing while using our generated Database type.
-      .upsert(payload as any, { onConflict: "id" });
+    await supabase.from("users").upsert(payload, { onConflict: "id" });
   }
 
   return {
