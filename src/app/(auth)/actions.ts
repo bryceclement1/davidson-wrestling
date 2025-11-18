@@ -82,7 +82,8 @@ export async function signUpAction(
 
     await supabase
       .from("users")
-      .upsert(payload, { onConflict: "id" });
+      // Cast to `any` to satisfy Supabase's generic upsert typing while using our generated Database type.
+      .upsert(payload as any, { onConflict: "id" });
   }
 
   return {
