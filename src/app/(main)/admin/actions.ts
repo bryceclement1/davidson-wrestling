@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { assertRole, getAuthenticatedUser } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { MatchResult } from "@/types/match";
+import type { Database } from "@/types/database";
 
 export async function updateMatchAction(formData: FormData) {
   const user = await getAuthenticatedUser();
@@ -63,9 +64,13 @@ export async function promoteUserToAdminAction(formData: FormData) {
     throw new Error("Invalid user id");
   }
 
+  const updatePayload: Database["public"]["Tables"]["users"]["Update"] = {
+    role: "admin",
+  };
+
   const { error } = await supabase
     .from("users")
-    .update({ role: "admin" } as Database["public"]["Tables"]["users"]["Update"])
+    .update(updatePayload)
     .eq("id", id);
 
   if (error) {
