@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertRole, getAuthenticatedUser } from "@/lib/auth/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 import type { MatchResult } from "@/types/match";
 
 export async function updateMatchAction(formData: FormData) {
@@ -29,13 +30,12 @@ export async function updateMatchAction(formData: FormData) {
 
   const { error } = await supabase
     .from("matches")
-    // Cast to the generated Database Update type to satisfy Supabase's generics.
-    .update({
+    .update<Database["public"]["Tables"]["matches"]["Update"]>({
       opponent_name: opponentName || null,
       our_score: Number.isNaN(ourScore) ? 0 : ourScore,
       opponent_score: Number.isNaN(opponentScore) ? 0 : opponentScore,
       result,
-    } as any)
+    })
     .eq("id", id);
 
   if (error) {
