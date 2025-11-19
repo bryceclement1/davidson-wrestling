@@ -16,7 +16,16 @@ export async function getTeamPeriodBreakdown(): Promise<TeamPeriodStat[]> {
     return mockTeamPeriodStats;
   }
 
-  return data as TeamPeriodStat[];
+  return data.map((row) => ({
+    periodLabel: row.period_label,
+    periodOrder: row.period_order,
+    takedownsFor: row.takedowns_for,
+    takedownsAgainst: row.takedowns_against,
+    attemptsFor: row.attempts_for,
+    attemptsAgainst: row.attempts_against,
+    pointsDifferential: row.points_differential,
+    matchesLogged: row.matches_logged,
+  }));
 }
 
 export async function getWrestlerPeriodBreakdown(
@@ -40,5 +49,14 @@ export async function getWrestlerPeriodBreakdown(
     return mockWrestlerStats[wrestlerId]?.periods ?? [];
   }
 
-  return data as WrestlerPeriodBreakdown[];
+  return data.map((row) => ({
+    periodLabel: row.period_label,
+    periodOrder: row.period_order,
+    takedownsFor: row.takedowns_for,
+    takedownsAgainst: row.takedowns_against,
+    attemptsFor: row.attempts_for,
+    attemptsAgainst: row.attempts_against,
+    pointsDifferential: row.points_differential,
+    matchesLogged: row.matches_logged,
+  }));
 }
