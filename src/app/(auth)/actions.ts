@@ -80,7 +80,11 @@ export async function signUpAction(
       wrestler_id: null,
     };
 
-    await supabase.from("users").upsert(payload, { onConflict: "id" });
+    await supabase
+      .from("users")
+      .upsert<Database["public"]["Tables"]["users"]["Insert"]>(payload, {
+        onConflict: "id",
+      });
   }
 
   return {
