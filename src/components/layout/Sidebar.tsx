@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { AppUser } from "@/types/user";
+import type { AppUser, UserRole } from "@/types/user";
 import { clsx } from "clsx";
 import {
   BarChart3,
@@ -15,7 +15,14 @@ import {
   Users,
 } from "lucide-react";
 
-const navItems = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof BarChart3;
+  roles: UserRole[];
+};
+
+const navItems: NavItem[] = [
   {
     href: "/",
     label: "Team Dashboard",
@@ -41,7 +48,7 @@ const navItems = [
     roles: ["admin", "standard"],
   },
   { href: "/admin", label: "Admin Tools", icon: Shield, roles: ["admin"] },
-] as const;
+];
 
 interface Props {
   user: AppUser;
