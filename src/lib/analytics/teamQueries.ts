@@ -7,7 +7,7 @@ import type {
   TeamDashboardData,
 } from "@/types/analytics";
 import type { MatchEvent } from "@/types/events";
-import type { MatchOutcomeType, MatchResult, MatchWithEvents } from "@/types/match";
+import type { MatchOutcomeType, MatchResult, MatchType, MatchWithEvents } from "@/types/match";
 import type { Database } from "@/types/database";
 import { mockMatches } from "./mockData";
 
@@ -94,13 +94,13 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
           `${evt.match_id}-${evt.period_order}-${evt.period_type}-${evt.action_type}`,
       ),
       matchId: evt.match_id,
-      actionType: evt.action_type,
+      actionType: evt.action_type as MatchEvent["actionType"],
       periodOrder: evt.period_order,
-      periodType: evt.period_type,
+      periodType: evt.period_type as MatchEvent["periodType"],
       periodNumber: evt.period_number,
-      scorer: evt.scorer,
-      attacker: evt.attacker ?? undefined,
-      takedownType: evt.takedown_type ?? undefined,
+      scorer: evt.scorer as MatchEvent["scorer"],
+      attacker: (evt.attacker ?? undefined) as MatchEvent["attacker"],
+      takedownType: (evt.takedown_type ?? undefined) as MatchEvent["takedownType"],
       points: (evt.points ?? undefined) as MatchEvent["points"],
       createdAt: evt.created_at ?? undefined,
     })) ?? [];
@@ -114,16 +114,16 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
     weightClass: row.weight_class ?? undefined,
     seasonId: row.season_id ?? undefined,
     eventId: row.event_id ?? undefined,
-    matchType: row.match_type,
+    matchType: (row.match_type ?? "dual") as MatchType,
     eventName: row.event_name ?? undefined,
-    outcomeType: row.outcome_type ?? undefined,
+    outcomeType: (row.outcome_type ?? undefined) as MatchOutcomeType | undefined,
     date: row.date,
-    result: row.result,
+    result: (row.result ?? "W") as MatchResult,
     ourScore: row.our_score ?? 0,
     opponentScore: row.opponent_score ?? 0,
     firstTakedownScorer: deriveFirstTakedownFromEvents(
       events,
-      row.first_takedown_scorer,
+      (row.first_takedown_scorer ?? undefined) as "us" | "opponent" | "none" | null | undefined,
     ),
     ourRidingTimeSeconds: row.our_riding_time_seconds ?? undefined,
     opponentRidingTimeSeconds: row.opponent_riding_time_seconds ?? undefined,

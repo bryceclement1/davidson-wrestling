@@ -11,7 +11,7 @@ function mapRowToWrestler(row: WrestlerRow): Wrestler {
     name: row.name,
     classYear: row.class_year ?? undefined,
     primaryWeightClass: row.primary_weight_class ?? undefined,
-    active: row.active,
+    active: row.active ?? true,
     userId: row.user_id,
   };
 }

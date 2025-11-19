@@ -18,7 +18,7 @@ export interface UpdateEventPayload {
 function mapRowToEvent(row: {
   id: number;
   name: string;
-  event_type: EventType;
+  event_type: string;
   date: string;
   opponent_school: string | null;
 }): TeamEvent {
@@ -26,7 +26,7 @@ function mapRowToEvent(row: {
     id: row.id,
     name: row.name,
     date: row.date,
-    type: row.event_type,
+    type: (row.event_type ?? "dual") as EventType,
     opponentSchool: row.opponent_school,
   };
 }
