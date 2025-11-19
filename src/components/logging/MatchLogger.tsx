@@ -676,7 +676,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               {nearfallPoints.map((value) => (
                 <button
                   key={value}
-                  onClick={() => handlePromptSelect(value)}
+                  onClick={() => handlePromptSelect(value as 2 | 3 | 4)}
                   className="rounded-xl border border-[var(--border)] px-4 py-3 text-lg font-semibold text-[var(--brand-navy)]"
                 >
                   {value}
@@ -712,7 +712,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               {[0, 1, 2].map((value) => (
                 <button
                   key={value}
-                  onClick={() => handlePromptSelect(value)}
+                  onClick={() => handlePromptSelect(value as 0 | 1 | 2)}
                   className="rounded-xl border border-[var(--border)] px-4 py-3 text-lg font-semibold text-[var(--brand-navy)]"
                 >
                   {value}
