@@ -453,6 +453,8 @@ function createEmptyInsights(): WrestlerInsights {
     takedownEfficiency: {
       ourConversionPct: 0,
       opponentConversionPct: 0,
+      ourTakedowns: 0,
+      ourAttempts: 0,
       mostCommonTakedown: null,
       mostCommonShot: null,
       avgTakedownsInP3: { us: 0, opponent: 0 },
