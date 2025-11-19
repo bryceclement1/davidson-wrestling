@@ -71,7 +71,7 @@ function getTakedownLabel(value: TakedownType) {
   return value.replace(/_/g, " ");
 }
 
-const nearfallPoints: Array<2 | 3 | 4> = [2, 3, 4];
+const nearfallPoints = [2, 3, 4] as const;
 const outcomeOptions: Array<{ value: MatchOutcomeType; label: string }> = [
   { value: "decision", label: "Decision" },
   { value: "major_decision", label: "Major Decision" },
