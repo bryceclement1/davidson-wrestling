@@ -49,23 +49,21 @@ export async function getTeamDashboardData(): Promise<TeamDashboardData> {
   }
 
   try {
-    const { data: season } = await supabase
-      .from("seasons")
-      .select("*")
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: season } = await (supabase.from("seasons").select("*").order("start_date", { ascending: false }).limit(1).maybeSingle() as Promise<{
+      data: Database["public"]["Tables"]["seasons"]["Row"] | null;
+      error: unknown;
+    }>);
 
-    let matchesQuery = supabase
-      .from("matches")
-      .select("*, match_events(*), wrestlers(name)")
-      .order("date", { ascending: false });
+    let matchesQuery = (supabase.from("matches").select("*, match_events(*), wrestlers(name)").order("date", { ascending: false }) as any);
 
     if (season?.id) {
       matchesQuery = matchesQuery.eq("season_id", season.id);
     }
 
-    const { data, error } = await matchesQuery;
+    const { data, error } = await (matchesQuery as Promise<{
+      data: MatchRow[] | null;
+      error: unknown;
+    }>);
 
     if (error || !data) {
       throw error;
