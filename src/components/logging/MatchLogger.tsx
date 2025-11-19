@@ -208,7 +208,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         actionType: prompt.actionType,
         scorer: prompt.scorer,
         takedownType,
-        attacker: prompt.scorer,
+        attacker: prompt.scorer === "none" ? undefined : prompt.scorer,
         points: prompt.actionType === "takedown" ? 3 : undefined,
       });
     } else if (prompt.mode === "nearfall") {
