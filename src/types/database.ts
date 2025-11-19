@@ -456,7 +456,36 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_team_period_stats: {
+        Args: never
+        Returns: {
+          attempts_against: number
+          attempts_for: number
+          matches_logged: number
+          period_label: string
+          period_number: number
+          period_order: number
+          period_type: string
+          points_differential: number
+          takedowns_against: number
+          takedowns_for: number
+        }[]
+      }
+      get_wrestler_period_stats: {
+        Args: { target_wrestler_id: number }
+        Returns: {
+          attempts_against: number
+          attempts_for: number
+          matches_logged: number
+          period_label: string
+          period_number: number
+          period_order: number
+          period_type: string
+          points_differential: number
+          takedowns_against: number
+          takedowns_for: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
