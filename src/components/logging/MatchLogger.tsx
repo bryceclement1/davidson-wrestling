@@ -71,7 +71,7 @@ function getTakedownLabel(value: TakedownType) {
   return value.replace(/_/g, " ");
 }
 
-const nearfallPoints: Array<2 | 3 | 4> = [2, 3, 4];
+const nearfallPoints = [2, 3, 4] as const;
 const outcomeOptions: Array<{ value: MatchOutcomeType; label: string }> = [
   { value: "decision", label: "Decision" },
   { value: "major_decision", label: "Major Decision" },
@@ -208,7 +208,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
         actionType: prompt.actionType,
         scorer: prompt.scorer,
         takedownType,
-        attacker: prompt.scorer,
+        attacker: prompt.scorer === "none" ? undefined : prompt.scorer,
         points: prompt.actionType === "takedown" ? 3 : undefined,
       });
     } else if (prompt.mode === "nearfall") {
@@ -676,7 +676,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               {nearfallPoints.map((value) => (
                 <button
                   key={value}
-                  onClick={() => handlePromptSelect(value)}
+                  onClick={() => handlePromptSelect(value as 2 | 3 | 4)}
                   className="rounded-xl border border-[var(--border)] px-4 py-3 text-lg font-semibold text-[var(--brand-navy)]"
                 >
                   {value}
@@ -712,7 +712,7 @@ export function MatchLogger({ roster, events: availableEvents }: Props) {
               {[0, 1, 2].map((value) => (
                 <button
                   key={value}
-                  onClick={() => handlePromptSelect(value)}
+                  onClick={() => handlePromptSelect(value as 0 | 1 | 2)}
                   className="rounded-xl border border-[var(--border)] px-4 py-3 text-lg font-semibold text-[var(--brand-navy)]"
                 >
                   {value}

@@ -1,10 +1,11 @@
 import { format } from "date-fns";
 
-export function formatDate(value: string | Date, pattern = "MMM d, yyyy") {
+export function formatDate(value: string | Date, pattern = "MMM d, yyyy"): string {
   try {
     return format(new Date(value), pattern);
   } catch {
-    return value;
+    // Always return a string fallback so React nodes remain valid
+    return typeof value === "string" ? value : value.toISOString();
   }
 }
 

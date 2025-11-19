@@ -5,6 +5,7 @@ import { getRecentMatches } from "@/lib/db/matches";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/lib/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database";
 import { promoteUserToAdminAction } from "./actions";
 
 export default async function AdminPage() {
@@ -23,7 +24,11 @@ export default async function AdminPage() {
         .select("id,email,name,role")
         .order("created_at", { ascending: true }))) ||
     { data: null };
-  const users = appUsers ?? [];
+  type AdminUser = Pick<
+    Database["public"]["Tables"]["users"]["Row"],
+    "id" | "email" | "name" | "role"
+  >;
+  const users: AdminUser[] = (appUsers ?? []) as AdminUser[];
 
   return (
     <div className="space-y-8">

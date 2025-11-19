@@ -64,7 +64,9 @@ export function PeriodBreakdownChart({ data }: Props) {
               position="top"
               fill="#002244"
               fontSize={12}
-              formatter={(value: number) => value.toFixed(2)}
+              formatter={(value) =>
+                typeof value === "number" ? value.toFixed(2) : ""
+              }
             />
           </Bar>
         </BarChart>

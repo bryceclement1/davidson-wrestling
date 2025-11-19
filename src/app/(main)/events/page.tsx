@@ -10,7 +10,6 @@ import {
   type DualEventSummary,
 } from "@/lib/db/matches";
 import type { MatchOutcomeType } from "@/types/match";
-import { clsx } from "clsx";
 
 export default async function EventsPage() {
   const events = await listEvents();
@@ -272,7 +271,7 @@ function DualScoreCard({ summary, opponent }: DualScoreCardProps) {
                   </p>
                   <p className="text-xs text-[var(--neutral-gray)]">
                     {match.result === "L" ? "Loss" : "Win"} ·{" "}
-                    {formatOutcomeLabel(match.outcomeType)}
+                    {formatOutcomeLabel(match.outcomeType ?? undefined)}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-[var(--brand-navy)]">

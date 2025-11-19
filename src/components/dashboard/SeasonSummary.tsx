@@ -5,27 +5,41 @@ interface Props {
   data: TeamDashboardData;
 }
 
-const highlights = [
-  { key: "record", label: "Team Record" },
-  { key: "matchesLogged", label: "Matches Logged" },
-  { key: "totalPointsFor", label: "Points For" },
-  { key: "totalPointsAgainst", label: "Points Allowed" },
-  { key: "firstTakedownWinPct", label: "First TD Win %" },
-  { key: "ridingTimeAdvantagePct", label: "Riding Time Adv %" },
-] as const;
+type Highlight = {
+  label: string;
+  getValue: (data: TeamDashboardData) => string | number;
+  isPercent?: boolean;
+};
+
+const highlights: Highlight[] = [
+  { label: "Team Record", getValue: (data) => data.overall.record },
+  { label: "Matches Logged", getValue: (data) => data.matchesLogged },
+  { label: "Points For", getValue: (data) => data.overall.pointsFor },
+  { label: "Points Allowed", getValue: (data) => data.overall.pointsAgainst },
+  {
+    label: "First TD Win %",
+    getValue: (data) => data.outcomePredictors.firstTakedownWinPct,
+    isPercent: true,
+  },
+  {
+    label: "RT Point %",
+    getValue: (data) => data.topBottom.ridingTimePointPct.us,
+    isPercent: true,
+  },
+];
 
 export function SeasonSummary({ data }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {highlights.map(({ key, label }) => {
-        const value = data[key];
+      {highlights.map(({ label, getValue, isPercent }) => {
+        const rawValue = getValue(data);
         const display =
-          typeof value === "number" && key.includes("Pct")
-            ? `${Math.round(value * 100)}%`
-            : value;
+          typeof rawValue === "number" && isPercent
+            ? `${Math.round(rawValue * 100)}%`
+            : rawValue;
 
         return (
-          <Card key={key} className="space-y-2">
+          <Card key={label} className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--neutral-gray)]">
               {label}
             </p>

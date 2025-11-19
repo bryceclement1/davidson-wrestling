@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Wrestler } from "@/types/wrestler";
-import type { MatchWithEvents } from "@/types/match";
+import type { MatchType, MatchOutcomeType, MatchResult, MatchWithEvents } from "@/types/match";
 import type { MatchEvent } from "@/types/events";
 import type {
   PeriodPointsAverages,
@@ -453,6 +453,8 @@ function createEmptyInsights(): WrestlerInsights {
     takedownEfficiency: {
       ourConversionPct: 0,
       opponentConversionPct: 0,
+      ourTakedowns: 0,
+      ourAttempts: 0,
       mostCommonTakedown: null,
       mostCommonShot: null,
       avgTakedownsInP3: { us: 0, opponent: 0 },
@@ -640,17 +642,13 @@ function buildMoveLeader(
   matchCount: number,
 ): WrestlerTakedownLeader | null {
   if (!counts.size) return null;
-  let leader: { type: string; total: number } | null = null;
-  counts.forEach((count, type) => {
-    if (!leader || count > leader.total) {
-      leader = { type, total: count };
-    }
-  });
-  if (!leader) return null;
+  const entries = Array.from(counts.entries());
+  entries.sort((a, b) => b[1] - a[1]);
+  const [type, total] = entries[0];
   return {
-    type: formatMoveLabel(leader.type),
-    total: leader.total,
-    avgPerMatch: matchCount ? leader.total / matchCount : 0,
+    type: formatMoveLabel(type),
+    total,
+    avgPerMatch: matchCount ? total / matchCount : 0,
   };
 }
 
@@ -719,7 +717,7 @@ function mapWrestler(row: WrestlerRow): Wrestler {
     name: row.name,
     classYear: row.class_year ?? undefined,
     primaryWeightClass: row.primary_weight_class ?? undefined,
-    active: row.active,
+    active: row.active ?? true,
     userId: row.user_id,
   };
 }
@@ -737,16 +735,16 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
     opponentSchool: row.opponent_school ?? undefined,
     weightClass: row.weight_class ?? undefined,
     seasonId: row.season_id ?? undefined,
-    matchType: row.match_type,
+    matchType: (row.match_type ?? "dual") as MatchType,
     eventName: row.event_name ?? undefined,
-    outcomeType: row.outcome_type ?? undefined,
+    outcomeType: (row.outcome_type ?? undefined) as MatchOutcomeType | undefined,
     date: row.date,
-    result: row.result,
+    result: (row.result ?? "W") as MatchResult,
     ourScore: row.our_score ?? 0,
     opponentScore: row.opponent_score ?? 0,
     firstTakedownScorer: deriveFirstTakedownFromEvents(
       events,
-      row.first_takedown_scorer,
+      (row.first_takedown_scorer ?? undefined) as "us" | "opponent" | "none" | null | undefined,
     ),
     ourRidingTimeSeconds: row.our_riding_time_seconds ?? undefined,
     opponentRidingTimeSeconds: row.opponent_riding_time_seconds ?? undefined,
@@ -763,14 +761,14 @@ function mapEventRow(
         `${row.match_id}-${row.period_order}-${row.period_type}-${row.action_type}`,
     ),
     matchId: row.match_id,
-    actionType: row.action_type,
+    actionType: row.action_type as MatchEvent["actionType"],
     periodOrder: row.period_order,
-    periodType: row.period_type,
+    periodType: row.period_type as MatchEvent["periodType"],
     periodNumber: row.period_number,
-    scorer: row.scorer,
-    attacker: row.attacker ?? undefined,
-    takedownType: row.takedown_type ?? undefined,
-    points: (row.points as MatchEvent["points"]) ?? undefined,
+    scorer: row.scorer as MatchEvent["scorer"],
+    attacker: (row.attacker ?? undefined) as MatchEvent["attacker"],
+    takedownType: (row.takedown_type ?? undefined) as MatchEvent["takedownType"],
+    points: (row.points ?? undefined) as MatchEvent["points"],
     createdAt: row.created_at ?? undefined,
   };
 }

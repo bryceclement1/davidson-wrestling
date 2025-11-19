@@ -2,8 +2,10 @@ import type {
   MatchLogPayload,
   MatchOutcomeType,
   MatchResult,
+  MatchType,
   MatchWithEvents,
 } from "@/types/match";
+import type { MatchEvent } from "@/types/events";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mockMatches } from "@/lib/analytics/mockData";
 import type { Database } from "@/types/database";
@@ -11,15 +13,15 @@ import type { Database } from "@/types/database";
 function deriveFirstTakedownFromDbEvents(
   events: Database["public"]["Tables"]["match_events"]["Row"][] | null | undefined,
   fallback?: Database["public"]["Tables"]["matches"]["Row"]["first_takedown_scorer"],
-) {
+): "us" | "opponent" | "none" | undefined {
   const takedown = events
     ?.filter((event) => event.action_type === "takedown")
     .sort((a, b) => (a.period_order ?? 0) - (b.period_order ?? 0))[0];
   if (takedown && takedown.scorer !== "none") {
-    return takedown.scorer;
+    return takedown.scorer as "us" | "opponent";
   }
   if (fallback && fallback !== "none") {
-    return fallback;
+    return fallback as "us" | "opponent" | undefined;
   }
   return undefined;
 }
@@ -58,15 +60,15 @@ export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[
       eventRows.map((evt) => ({
         id: String(evt.id),
         matchId: evt.match_id,
-        actionType: evt.action_type,
+        actionType: evt.action_type as MatchEvent["actionType"],
         periodOrder: evt.period_order,
-        periodType: evt.period_type,
+        periodType: evt.period_type as MatchEvent["periodType"],
         periodNumber: evt.period_number,
-        scorer: evt.scorer,
-        attacker: evt.attacker ?? undefined,
-        takedownType: evt.takedown_type ?? undefined,
-        points: evt.points ?? undefined,
-        createdAt: evt.created_at,
+        scorer: evt.scorer as MatchEvent["scorer"],
+        attacker: (evt.attacker ?? undefined) as MatchEvent["attacker"],
+        takedownType: (evt.takedown_type ?? undefined) as MatchEvent["takedownType"],
+        points: (evt.points ?? undefined) as MatchEvent["points"],
+        createdAt: evt.created_at ?? undefined,
       })) ?? [];
 
     return {
@@ -77,19 +79,19 @@ export async function getRecentMatches(limit?: number): Promise<MatchWithEvents[
       opponentName: match.opponent_name,
       opponentSchool: match.opponent_school ?? undefined,
       weightClass: match.weight_class ?? undefined,
-      matchType: match.match_type,
+      matchType: (match.match_type ?? "dual") as MatchType,
       eventName: match.event_name ?? undefined,
-      outcomeType: match.outcome_type ?? undefined,
+      outcomeType: (match.outcome_type ?? undefined) as MatchOutcomeType | undefined,
       date: match.date,
-      result: match.result,
-      ourScore: match.our_score,
-      opponentScore: match.opponent_score,
+      result: (match.result ?? "W") as MatchResult,
+      ourScore: match.our_score ?? 0,
+      opponentScore: match.opponent_score ?? 0,
       firstTakedownScorer: deriveFirstTakedownFromDbEvents(
         eventRows,
-        match.first_takedown_scorer,
+        (match.first_takedown_scorer ?? undefined) as "us" | "opponent" | "none" | null | undefined,
       ),
-      ourRidingTimeSeconds: match.our_riding_time_seconds,
-      opponentRidingTimeSeconds: match.opponent_riding_time_seconds,
+      ourRidingTimeSeconds: match.our_riding_time_seconds ?? undefined,
+      opponentRidingTimeSeconds: match.opponent_riding_time_seconds ?? undefined,
       events,
     };
   });
@@ -186,28 +188,32 @@ export async function getMatchById(id: number): Promise<MatchWithEvents | null> 
     opponentSchool: data.opponent_school ?? undefined,
     weightClass: data.weight_class ?? undefined,
     seasonId: data.season_id ?? undefined,
-    matchType: data.match_type,
+    matchType: (data.match_type ?? "dual") as MatchType,
     eventName: data.event_name ?? undefined,
-    outcomeType: data.outcome_type ?? undefined,
+    outcomeType: (data.outcome_type ?? undefined) as MatchOutcomeType | undefined,
     date: data.date,
-    result: data.result,
+    result: (data.result ?? "W") as MatchResult,
     ourScore: data.our_score ?? 0,
     opponentScore: data.opponent_score ?? 0,
-    firstTakedownScorer: data.first_takedown_scorer ?? undefined,
+    firstTakedownScorer: (data.first_takedown_scorer ?? undefined) as
+      | "us"
+      | "opponent"
+      | "none"
+      | undefined,
     ourRidingTimeSeconds: data.our_riding_time_seconds ?? undefined,
     opponentRidingTimeSeconds: data.opponent_riding_time_seconds ?? undefined,
     events:
       data.match_events?.map((evt) => ({
         id: String(evt.id),
         matchId: evt.match_id,
-        actionType: evt.action_type,
+        actionType: evt.action_type as MatchEvent["actionType"],
         periodOrder: evt.period_order,
-        periodType: evt.period_type,
+        periodType: evt.period_type as MatchEvent["periodType"],
         periodNumber: evt.period_number,
-        scorer: evt.scorer,
-        attacker: evt.attacker ?? undefined,
-        takedownType: evt.takedown_type ?? undefined,
-        points: evt.points ?? undefined,
+        scorer: evt.scorer as MatchEvent["scorer"],
+        attacker: (evt.attacker ?? undefined) as MatchEvent["attacker"],
+        takedownType: (evt.takedown_type ?? undefined) as MatchEvent["takedownType"],
+        points: (evt.points ?? undefined) as MatchEvent["points"],
         createdAt: evt.created_at ?? undefined,
       })) ?? [],
   };
@@ -296,10 +302,9 @@ export async function getDualEventSummary(
 
   const matches = (data as MatchRow[])
     .map((match) => {
-      const { forUs, forThem } = calculateDualPoints(
-        match.result,
-        match.outcome_type as MatchOutcomeType | undefined,
-      );
+      const result = (match.result ?? "W") as MatchResult;
+      const outcome = (match.outcome_type ?? undefined) as MatchOutcomeType | undefined;
+      const { forUs, forThem } = calculateDualPoints(result, outcome);
       ourScore += forUs;
       opponentScore += forThem;
       return {
@@ -308,8 +313,8 @@ export async function getDualEventSummary(
         wrestlerName: match.wrestlers?.name ?? undefined,
         opponentName: match.opponent_name,
         weightClass: match.weight_class ?? undefined,
-        result: match.result,
-        outcomeType: match.outcome_type as MatchOutcomeType | undefined,
+        result,
+        outcomeType: outcome,
         ourScore: match.our_score ?? 0,
         opponentScore: match.opponent_score ?? 0,
       } satisfies DualMatchSummary;
