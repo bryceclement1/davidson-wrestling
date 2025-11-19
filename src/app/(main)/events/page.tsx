@@ -271,7 +271,7 @@ function DualScoreCard({ summary, opponent }: DualScoreCardProps) {
                   </p>
                   <p className="text-xs text-[var(--neutral-gray)]">
                     {match.result === "L" ? "Loss" : "Win"} ·{" "}
-                    {formatOutcomeLabel(match.outcomeType)}
+                    {formatOutcomeLabel(match.outcomeType ?? undefined)}
                   </p>
                 </div>
                 <p className="text-sm font-semibold text-[var(--brand-navy)]">
