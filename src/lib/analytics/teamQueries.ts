@@ -87,7 +87,7 @@ export async function getTeamDashboardData(): Promise<TeamDashboardData> {
 }
 
 function mapMatchRow(row: MatchRow): MatchWithEvents {
-  const events =
+  const events: MatchEvent[] =
     row.match_events?.map((evt) => ({
       id: String(
         evt.id ??
@@ -101,7 +101,7 @@ function mapMatchRow(row: MatchRow): MatchWithEvents {
       scorer: evt.scorer,
       attacker: evt.attacker ?? undefined,
       takedownType: evt.takedown_type ?? undefined,
-      points: evt.points ?? undefined,
+      points: (evt.points ?? undefined) as MatchEvent["points"],
       createdAt: evt.created_at ?? undefined,
     })) ?? [];
 
