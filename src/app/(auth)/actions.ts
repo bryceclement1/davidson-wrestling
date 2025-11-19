@@ -81,10 +81,8 @@ export async function signUpAction(
     };
 
     await supabase
-      .from("users")
-      .upsert<Database["public"]["Tables"]["users"]["Insert"]>(payload, {
-        onConflict: "id",
-      });
+      .from<Database["public"]["Tables"]["users"]["Row"]>("users")
+      .upsert(payload, { onConflict: "id" });
   }
 
   return {

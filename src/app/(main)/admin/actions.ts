@@ -29,8 +29,8 @@ export async function updateMatchAction(formData: FormData) {
   const result = (formData.get("result") ?? "W") as MatchResult;
 
   const { error } = await supabase
-    .from("matches")
-    .update<Database["public"]["Tables"]["matches"]["Update"]>({
+    .from<Database["public"]["Tables"]["matches"]["Row"]>("matches")
+    .update({
       opponent_name: opponentName || null,
       our_score: Number.isNaN(ourScore) ? 0 : ourScore,
       opponent_score: Number.isNaN(opponentScore) ? 0 : opponentScore,
@@ -65,10 +65,8 @@ export async function promoteUserToAdminAction(formData: FormData) {
   }
 
   const { error } = await supabase
-    .from("users")
-    .update<Database["public"]["Tables"]["users"]["Update"]>({
-      role: "admin",
-    })
+    .from<Database["public"]["Tables"]["users"]["Row"]>("users")
+    .update({ role: "admin" })
     .eq("id", id);
 
   if (error) {
