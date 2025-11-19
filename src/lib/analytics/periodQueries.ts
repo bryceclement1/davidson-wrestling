@@ -28,7 +28,7 @@ export async function getWrestlerPeriodBreakdown(
     return mockWrestlerStats[wrestlerId]?.periods ?? [];
   }
 
-  const { data, error } = await (supabase.rpc as typeof supabase.rpc)(
+  const { data, error } = await (supabase as any).rpc(
     "get_wrestler_period_stats",
     {
       wrestler_id: wrestlerId,
