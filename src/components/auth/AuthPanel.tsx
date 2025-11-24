@@ -62,6 +62,32 @@ export function AuthPanel() {
 
       {mode === "signup" && (
         <form action={signUpDispatch} className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-[var(--brand-navy)]">
+                First Name
+              </label>
+              <Input
+                type="text"
+                name="firstName"
+                required
+                placeholder="First name"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-[var(--brand-navy)]">
+                Last Name
+              </label>
+              <Input
+                type="text"
+                name="lastName"
+                required
+                placeholder="Last name"
+                className="mt-1"
+              />
+            </div>
+          </div>
           <div>
             <label className="text-sm font-semibold text-[var(--brand-navy)]">
               Email

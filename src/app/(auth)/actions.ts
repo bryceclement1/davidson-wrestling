@@ -42,9 +42,17 @@ export async function signUpAction(
   const supabase = await createSupabaseServerClient();
   const email = (formData.get("email") as string)?.trim();
   const password = formData.get("password") as string;
+  const firstName = (formData.get("firstName") as string)?.trim();
+  const lastName = (formData.get("lastName") as string)?.trim();
+  const fullName =
+    [firstName, lastName].filter((part) => part && part.length > 0).join(" ") ||
+    null;
 
-  if (!email || !password) {
-    return { status: "error", message: "Email and password required" };
+  if (!email || !password || !firstName || !lastName) {
+    return {
+      status: "error",
+      message: "First name, last name, email, and password are required.",
+    };
   }
 
   if (!supabase) {
@@ -59,7 +67,12 @@ export async function signUpAction(
     email,
     password,
     options: {
-      data: { role: "standard" },
+      data: {
+        role: "standard",
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+      },
     },
   });
 
@@ -73,6 +86,7 @@ export async function signUpAction(
       id: authUser.id,
       email: authUser.email ?? email,
       name:
+        fullName ??
         authUser.user_metadata?.full_name ??
         authUser.user_metadata?.name ??
         null,
